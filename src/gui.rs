@@ -1,6 +1,49 @@
+use colorgrad::Gradient;
 use raylib::prelude::*;
 
-use crate::solvers::{create_solver, Problem};
+use crate::{
+    dto::Attendee,
+    solvers::{create_solver, Problem},
+};
+
+struct TasteGradient {
+    // min: f64,
+    // max: f64,
+    gradient: Gradient,
+}
+
+impl TasteGradient {
+    pub fn new(instrument: u32, attendees: &[Attendee]) -> Self {
+        let min_taste = attendees
+            .iter()
+            .map(|as_| as_.tastes[instrument as usize] as i32)
+            .min()
+            .unwrap() as f64;
+        let max_taste = attendees
+            .iter()
+            .map(|as_| as_.tastes[instrument as usize] as i32)
+            .max()
+            .unwrap() as f64;
+        let taste_gradient = colorgrad::CustomGradient::new()
+            .colors(&[
+                colorgrad::Color::from_rgba8(255, 0, 0, 255),
+                colorgrad::Color::from_rgba8(0, 255, 0, 255),
+            ])
+            .domain(&[min_taste, max_taste])
+            .build()
+            .unwrap();
+        TasteGradient {
+            // min: min_taste,
+            // max: max_taste,
+            gradient: taste_gradient,
+        }
+    }
+
+    pub fn get_color(&self, taste: f64) -> raylib::prelude::Color {
+        let c = self.gradient.at(taste).to_rgba8();
+        raylib::prelude::Color::new(c[0], c[1], c[2], c[3]).into()
+    }
+}
 
 pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
     dbg!(problem_path);
@@ -13,9 +56,10 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
     const WIDTH: i32 = 800;
     const HEIGHT: i32 = 800;
     const MARGIN: i32 = 20;
+    const RIGHT_SIDE_WIDTH: i32 = 200;
 
     let (mut rl, thread) = raylib::init()
-        .size(WIDTH + MARGIN * 2, HEIGHT + MARGIN * 2)
+        .size(WIDTH + MARGIN * 2 + RIGHT_SIDE_WIDTH, HEIGHT + MARGIN * 2)
         .title(&format!("ICFPC2023 - Dare Ludum - {:#?}", problem_path))
         .build();
 
@@ -49,8 +93,12 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
     let ratio = ratio_x.min(ratio_y);
     dbg!(ratio);
 
+    let max_instrument = data.musicians.iter().map(|i| i.0).max().unwrap();
+
     let mut solution = None;
     let mut done = false;
+    let mut selected_instrument = None;
+    let mut taste_gradient = None;
 
     while !rl.window_should_close() {
         // ===== HIT TEST =====
@@ -69,6 +117,34 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
                         break;
                     }
                 },
+                KeyboardKey::KEY_Q => {
+                    if selected_instrument == Some(0) {
+                        selected_instrument = None;
+                    } else if selected_instrument == None {
+                        selected_instrument = Some(max_instrument);
+                    } else {
+                        selected_instrument = Some(selected_instrument.unwrap() - 1);
+                    }
+                    if let Some(instrument) = selected_instrument {
+                        taste_gradient = Some(TasteGradient::new(instrument, &data.attendees));
+                    } else {
+                        taste_gradient = None;
+                    }
+                }
+                KeyboardKey::KEY_W => {
+                    if selected_instrument == None {
+                        selected_instrument = Some(0);
+                    } else if selected_instrument == Some(max_instrument) {
+                        selected_instrument = None;
+                    } else {
+                        selected_instrument = Some(selected_instrument.unwrap() + 1);
+                    }
+                    if let Some(instrument) = selected_instrument {
+                        taste_gradient = Some(TasteGradient::new(instrument, &data.attendees));
+                    } else {
+                        taste_gradient = None;
+                    }
+                }
                 _ => {}
             },
             None => {}
@@ -99,7 +175,12 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
                 MARGIN + (attendee.x * ratio) as i32,
                 MARGIN + (attendee.y * ratio) as i32,
                 10.0 * ratio,
-                Color::BROWN,
+                taste_gradient
+                    .as_ref()
+                    .map(|g| {
+                        g.get_color(attendee.tastes[selected_instrument.unwrap() as usize] as f64)
+                    })
+                    .unwrap_or(Color::DARKBROWN),
             );
         }
 
@@ -115,5 +196,22 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
                 }
             }
         }
+
+        // Right side
+
+        d.draw_text(
+            &format!(
+                "Focused instrument: {}",
+                if selected_instrument.is_none() {
+                    "<none>".to_owned()
+                } else {
+                    selected_instrument.unwrap().to_string()
+                }
+            ),
+            WIDTH + MARGIN * 2,
+            MARGIN,
+            12,
+            Color::BLACK,
+        );
     }
 }
