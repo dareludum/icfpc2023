@@ -10,8 +10,8 @@ fn calculate_distance(attendee: &Attendee, placement: &Placement) -> f32 {
     (x * x + y * y).sqrt()
 }
 
-fn calculate_impact(attendee: &Attendee, musician: i32, distance: f32) -> f64 {
-    1000000 as f64 * attendee.tastes[musician as usize] as f64 / (distance * distance) as f64
+fn calculate_impact(attendee: &Attendee, instrument: i32, distance: f32) -> f64 {
+    1000000 as f64 * attendee.tastes[instrument as usize] as f64 / (distance * distance) as f64
 }
 
 fn calculate_attendee_happiness(
@@ -72,14 +72,14 @@ fn is_sound_blocked(k: &Placement, k_1: &Placement, attendee: &Attendee) -> bool
     (x_min <= t1 && t1 <= x_max) || (x_min <= t2 && t2 <= x_max)
 }
 
-pub fn score_musician(attendees: &[Attendee], placements: &[Placement], musician: i32) -> Score {
+pub fn score_musician(attendees: &[Attendee], placement: &Placement, instrument: i32) -> Score {
     let mut score = 0.0;
 
     for attendee in attendees {
         score += calculate_impact(
             attendee,
-            musician,
-            calculate_distance(attendee, &placements[musician as usize]),
+            instrument,
+            calculate_distance(attendee, placement),
         );
     }
 
@@ -94,4 +94,95 @@ pub fn score(problem: &ProblemDto, solution: &SolutionDto) -> Score {
     }
 
     Score(score)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::dto::{Attendee, Placement};
+    use crate::solvers::Score;
+
+    #[test]
+    fn test_calculate_attendee_happiness_no_blocked() {
+        let attendees = vec![
+            Attendee {
+                x: 1.0,
+                y: 1.0,
+                tastes: vec![100, 200, 300],
+            },
+            Attendee {
+                x: 2.0,
+                y: 2.0,
+                tastes: vec![150, 250, 350],
+            },
+        ];
+
+        let musicians = vec![0, 1, 2];
+
+        let placements = vec![
+            Placement { x: 0.0, y: 0.0 },
+            Placement { x: 1.0, y: 1.0 },
+            Placement { x: 2.0, y: 2.0 },
+        ];
+
+        let happiness = calculate_attendee_happiness(&attendees[0], &musicians, &placements);
+
+        assert_eq!(happiness, 1499998.0);
+    }
+
+    #[test]
+    fn test_calculate_attendee_happiness_with_blocked() {
+        let attendees = vec![
+            Attendee {
+                x: 1.0,
+                y: 1.0,
+                tastes: vec![100, 200, 300],
+            },
+            Attendee {
+                x: 2.0,
+                y: 2.0,
+                tastes: vec![150, 250, 350],
+            },
+        ];
+
+        let musicians = vec![0, 1, 2];
+
+        let placements = vec![
+            Placement { x: 0.0, y: 0.0 },
+            Placement { x: 1.0, y: 1.0 },
+            Placement { x: 1.5, y: 1.5 }, // This musician is blocked by the previous one
+        ];
+
+        let happiness = calculate_attendee_happiness(&attendees[0], &musicians, &placements);
+
+        assert_eq!(happiness, 1500000.0); // The blocked musician's impact is skipped
+    }
+
+    #[test]
+    fn test_calculate_attendee_happiness_empty_musicians() {
+        let attendees = vec![
+            Attendee {
+                x: 1.0,
+                y: 1.0,
+                tastes: vec![100, 200, 300],
+            },
+            Attendee {
+                x: 2.0,
+                y: 2.0,
+                tastes: vec![150, 250, 350],
+            },
+        ];
+
+        let musicians = vec![];
+
+        let placements = vec![
+            Placement { x: 0.0, y: 0.0 },
+            Placement { x: 1.0, y: 1.0 },
+            Placement { x: 2.0, y: 2.0 },
+        ];
+
+        let happiness = calculate_attendee_happiness(&attendees[0], &musicians, &placements);
+
+        assert_eq!(happiness, 0.0); // No musicians, so happiness is 0
+    }
 }
