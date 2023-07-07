@@ -66,7 +66,10 @@ impl Into<Vector2<f32>> for &Attendee {
 
 impl From<Vector2<f32>> for Placement {
     fn from(value: Vector2<f32>) -> Self {
-        Placement { x: value.x, y: value.y }
+        Placement {
+            x: value.x,
+            y: value.y,
+        }
     }
 }
 

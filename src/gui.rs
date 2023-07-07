@@ -2,18 +2,52 @@ use colorgrad::Gradient;
 use raylib::prelude::*;
 
 use crate::{
-    dto::Attendee,
+    common::Position,
+    dto::{Attendee, Instrument},
+    scorer::ImpactMap,
     solvers::{create_solver, Problem},
 };
 
-struct TasteGradient {
-    // min: f64,
-    // max: f64,
-    gradient: Gradient,
+struct ColorGradient {
+    neg_gradient: Option<Gradient>,
+    pos_gradient: Option<Gradient>,
 }
 
-impl TasteGradient {
-    pub fn new(instrument: u32, attendees: &[Attendee]) -> Self {
+impl ColorGradient {
+    pub fn new(min_taste: f64, max_taste: f64) -> Self {
+        let mut neg_gradient = None;
+        let mut pos_gradient = None;
+        if min_taste < 0.0 {
+            neg_gradient = Some(
+                colorgrad::CustomGradient::new()
+                    .colors(&[
+                        colorgrad::Color::from_rgba8(255, 0, 0, 255),
+                        colorgrad::Color::from_rgba8(255, 255, 255, 64),
+                    ])
+                    .domain(&[min_taste, -0.0])
+                    .build()
+                    .unwrap(),
+            );
+        }
+        if max_taste > 0.0 {
+            pos_gradient = Some(
+                colorgrad::CustomGradient::new()
+                    .colors(&[
+                        colorgrad::Color::from_rgba8(255, 255, 255, 64),
+                        colorgrad::Color::from_rgba8(0, 255, 0, 255),
+                    ])
+                    .domain(&[0.0, max_taste])
+                    .build()
+                    .unwrap(),
+            );
+        }
+        ColorGradient {
+            neg_gradient,
+            pos_gradient,
+        }
+    }
+
+    pub fn for_taste(instrument: u32, attendees: &[Attendee]) -> Self {
         let min_taste = attendees
             .iter()
             .map(|as_| as_.tastes[instrument as usize] as i32)
@@ -24,23 +58,34 @@ impl TasteGradient {
             .map(|as_| as_.tastes[instrument as usize] as i32)
             .max()
             .unwrap() as f64;
-        let taste_gradient = colorgrad::CustomGradient::new()
-            .colors(&[
-                colorgrad::Color::from_rgba8(255, 0, 0, 255),
-                colorgrad::Color::from_rgba8(0, 255, 0, 255),
-            ])
-            .domain(&[min_taste, max_taste])
-            .build()
-            .unwrap();
-        TasteGradient {
-            // min: min_taste,
-            // max: max_taste,
-            gradient: taste_gradient,
-        }
+        Self::new(min_taste, max_taste)
     }
 
-    pub fn get_color(&self, taste: f64) -> raylib::prelude::Color {
-        let c = self.gradient.at(taste).to_rgba8();
+    pub fn for_impact_map(grid: &[Position], impact_map: &ImpactMap) -> Self {
+        let min = grid
+            .iter()
+            .zip(&impact_map.scores)
+            .filter(|(pos, _s)| !pos.taken)
+            .map(|(_pos, s)| s.0)
+            .min()
+            .unwrap() as f64;
+        let max = grid
+            .iter()
+            .zip(&impact_map.scores)
+            .filter(|(pos, _s)| !pos.taken)
+            .map(|(_pos, s)| s.0)
+            .max()
+            .unwrap() as f64;
+        Self::new(min, max)
+    }
+
+    pub fn get_color(&self, value: f64) -> raylib::prelude::Color {
+        let gradient = if value < 0.0 {
+            self.neg_gradient.as_ref().unwrap()
+        } else {
+            self.pos_gradient.as_ref().unwrap()
+        };
+        let c = gradient.at(value).to_rgba8();
         raylib::prelude::Color::new(c[0], c[1], c[2], c[3]).into()
     }
 }
@@ -126,7 +171,8 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
                         selected_instrument = Some(selected_instrument.unwrap() - 1);
                     }
                     if let Some(instrument) = selected_instrument {
-                        taste_gradient = Some(TasteGradient::new(instrument, &data.attendees));
+                        taste_gradient =
+                            Some(ColorGradient::for_taste(instrument, &data.attendees));
                     } else {
                         taste_gradient = None;
                     }
@@ -140,7 +186,8 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
                         selected_instrument = Some(selected_instrument.unwrap() + 1);
                     }
                     if let Some(instrument) = selected_instrument {
-                        taste_gradient = Some(TasteGradient::new(instrument, &data.attendees));
+                        taste_gradient =
+                            Some(ColorGradient::for_taste(instrument, &data.attendees));
                     } else {
                         taste_gradient = None;
                     }
@@ -193,6 +240,24 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
                         10.0 * ratio,
                         Color::BLUE,
                     );
+                }
+            }
+        }
+
+        if let Some(instrument) = selected_instrument {
+            if let Some(impact_map) = solver.get_impact_map(&Instrument(instrument)) {
+                let grid = solver.get_grid().unwrap();
+                let gradient = ColorGradient::for_impact_map(grid, impact_map);
+                for (pos, score) in grid.iter().zip(&impact_map.scores) {
+                    if !pos.taken {
+                        d.draw_rectangle(
+                            MARGIN + ((pos.p.x - 1.0) * ratio) as i32,
+                            MARGIN + ((pos.p.y - 1.0) * ratio) as i32,
+                            (3.0 * ratio) as i32,
+                            (3.0 * ratio) as i32,
+                            gradient.get_color(score.0 as f64),
+                        );
+                    }
                 }
             }
         }

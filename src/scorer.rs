@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
-use rayon::prelude::*;
 use nalgebra::Vector2;
+use rayon::prelude::*;
 
 use crate::{
     common::Position,
@@ -34,11 +34,11 @@ fn calculate_attendee_happiness(
 
         for other_i in 0..musicians.len() {
             if other_i == i {
-                continue
+                continue;
             }
 
             if is_sound_blocked_2(&placements[i], &placements[other_i], attendee) {
-                continue 'hap_loop
+                continue 'hap_loop;
             }
         }
 
@@ -56,10 +56,16 @@ fn is_sound_blocked_2(k: &Placement, k_1: &Placement, attendee: &Attendee) -> bo
     let line_end = attendee;
 
     // Create vector from the start of the line to the center of the circle
-    let start_to_center = Placement { x: circle_center.x - line_start.x, y: circle_center.y - line_start.y };
+    let start_to_center = Placement {
+        x: circle_center.x - line_start.x,
+        y: circle_center.y - line_start.y,
+    };
 
     // Create the vector that represents the line
-    let line_vector = Placement { x: line_end.x - line_start.x, y: line_end.y - line_start.y };
+    let line_vector = Placement {
+        x: line_end.x - line_start.x,
+        y: line_end.y - line_start.y,
+    };
 
     // Calculate the squared length of the line
     let line_len_sq = line_vector.x * line_vector.x + line_vector.y * line_vector.y;
@@ -78,17 +84,18 @@ fn is_sound_blocked_2(k: &Placement, k_1: &Placement, attendee: &Attendee) -> bo
     // Calculate the coordinates of the closest Placement
     let closest_point = Placement {
         x: line_start.x + t * line_vector.x,
-        y: line_start.y + t * line_vector.y
+        y: line_start.y + t * line_vector.y,
     };
 
     // Calculate the vector from the closest Placement to the center of the circle
     let closest_to_center = Placement {
         x: circle_center.x - closest_point.x,
-        y: circle_center.y - closest_point.y
+        y: circle_center.y - closest_point.y,
     };
 
     // Calculate the squared length of the vector
-    let closest_to_center_len_sq = closest_to_center.x * closest_to_center.x + closest_to_center.y * closest_to_center.y;
+    let closest_to_center_len_sq =
+        closest_to_center.x * closest_to_center.x + closest_to_center.y * closest_to_center.y;
 
     // If the squared length is less than r squared, the line intersects the circle
     closest_to_center_len_sq <= r * r
@@ -98,7 +105,12 @@ fn is_sound_blocked(k: &Placement, k_1: &Placement, attendee: &Attendee) -> bool
     line_circle_intersection(attendee.into(), k.into(), k_1.into(), 5.0)
 }
 
-fn line_circle_intersection(a: Vector2<f32>, b: Vector2<f32>, circle_center: Vector2<f32>, circle_radius: f32) -> bool {
+fn line_circle_intersection(
+    a: Vector2<f32>,
+    b: Vector2<f32>,
+    circle_center: Vector2<f32>,
+    circle_radius: f32,
+) -> bool {
     assert!((a - circle_center).norm() > circle_radius);
     assert!((b - circle_center).norm() > circle_radius);
     let a_b = b - a;
@@ -108,12 +120,11 @@ fn line_circle_intersection(a: Vector2<f32>, b: Vector2<f32>, circle_center: Vec
     let a_circle = circle_center - a;
     let projected_len = a_b_dir.dot(&a_circle);
     if projected_len < 0. || projected_len > a_b_norm {
-        return false
+        return false;
     }
     let circle_deviation = (a_circle.norm_squared() - projected_len * projected_len).sqrt();
     circle_deviation < circle_radius
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -128,20 +139,26 @@ mod tests {
             ((0., 0.), (10., 0.), (5., 5.), 3., false),
             ((0., 0.), (10., 0.), (5., 5.), 5.1, true),
             ((0., 0.), (10., 0.), (5., 5.), 4.9, false),
-
             // circle alongside the line
             ((-2.42, -3.58), (14.76, 6.64), (7.1, 8.44), 5., false),
             ((-2.42, -3.58), (14.76, 6.64), (7.1, 7.44), 5., true),
-
             // circle slightly behind the line
             ((-2.42, -3.58), (14.76, 6.64), (17.56, 11.7), 5., false),
-
             ((1100., 800.), (1100., 150.), (1100., 100.), 5., false),
         ];
 
         for (a, b, c, r, int) in tests {
-            let res = line_circle_intersection(Vector2::new(a.0, a.1), Vector2::new(b.0, b.1), Vector2::new(c.0, c.1), r);
-            assert_eq!(res, int, "intersection of segment from {:?} to {:?} by {:?} r {} should be {}", a, b, c, r, int);
+            let res = line_circle_intersection(
+                Vector2::new(a.0, a.1),
+                Vector2::new(b.0, b.1),
+                Vector2::new(c.0, c.1),
+                r,
+            );
+            assert_eq!(
+                res, int,
+                "intersection of segment from {:?} to {:?} by {:?} r {} should be {}",
+                a, b, c, r, int
+            );
         }
     }
 }
@@ -154,11 +171,7 @@ pub fn score_instrument(
     let mut score = 0;
 
     for attendee in attendees {
-        score += calculate_impact(
-            attendee,
-            instrument,
-            placement,
-        );
+        score += calculate_impact(attendee, instrument, placement);
     }
 
     Score(score)
@@ -242,8 +255,7 @@ impl ImpactMap {
         for (idx, idx_attendee) in blocked_positions {
             let pos = &grid[*idx];
             let attendee = &attendees[*idx_attendee];
-            self.scores[*idx].0 -=
-                calculate_impact(attendee, instrument, &pos.p);
+            self.scores[*idx].0 -= calculate_impact(attendee, instrument, &pos.p);
             if *idx == self.best_score_pos_idx {
                 needs_best_score_update = true;
             }

@@ -24,6 +24,14 @@ impl Solver for Greedy {
         "greedy"
     }
 
+    fn get_impact_map(&self, instrument: &Instrument) -> Option<&ImpactMap> {
+        self.impact_maps.get(instrument)
+    }
+
+    fn get_grid(&self) -> Option<&[Position]> {
+        Some(&self.allowed_positions)
+    }
+
     fn initialize(&mut self, problem: &Problem) {
         self.problem = problem.data.clone();
         let x = self.problem.stage_bottom_left.0 + 10.0;
