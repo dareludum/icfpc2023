@@ -13,6 +13,7 @@ mod dto;
 mod gui;
 mod helpers;
 mod solvers;
+mod scorer;
 
 fn get_problem_paths(args: &Args, force_batch: bool) -> Result<Vec<PathBuf>, std::io::Error> {
     if !args.problems.is_empty() {
