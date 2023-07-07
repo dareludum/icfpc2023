@@ -12,20 +12,20 @@ mod cmd;
 mod dto;
 mod gui;
 mod helpers;
-mod solvers;
 mod scorer;
+mod solvers;
 
 fn get_problem_paths(args: &Args, force_batch: bool) -> Result<Vec<PathBuf>, std::io::Error> {
     if !args.problems.is_empty() {
         Ok(args
             .problems
             .iter()
-            .map(|p| PathBuf::from(format!("./problems/{p}.png")))
+            .map(|p| PathBuf::from(format!("./problems/{p}.json")))
             .collect())
     } else if args.batch || force_batch {
         Ok(get_all_problem_paths()?)
     } else {
-        Ok(vec![PathBuf::from("./problems/3.png")])
+        Ok(vec![PathBuf::from("./problems/42.json")])
     }
 }
 
@@ -35,7 +35,7 @@ fn get_all_problem_paths() -> Result<Vec<PathBuf>, std::io::Error> {
         .iter()
         .filter_map(|f| {
             let x = os_str_to_str(f.path().file_name());
-            if x.ends_with(".png") && !x.ends_with(".source.png") {
+            if x.ends_with(".json") {
                 Some(f.path())
             } else {
                 None

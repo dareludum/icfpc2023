@@ -11,8 +11,6 @@ impl Solver for NoOp {
     }
 
     fn solve_core(&self, _problem: &Problem) -> SolutionDto {
-        SolutionDto {
-            placements: vec![],
-        }
+        SolutionDto { placements: vec![] }
     }
 }

@@ -1,13 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Attendee {
     pub x: f32,
     pub y: f32,
     pub tastes: Vec<f32>,
 }
-
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct ProblemDto {
@@ -20,7 +18,6 @@ pub struct ProblemDto {
     pub attendees: Vec<Attendee>,
 }
 
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SolutionDto {
     pub placements: Vec<Placement>,
@@ -31,7 +28,6 @@ pub struct Placement {
     pub x: f32,
     pub y: f32,
 }
-
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct SolutionMetaDto {
