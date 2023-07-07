@@ -1,7 +1,7 @@
 mod no_op;
 
 use std::fs::File;
-use std::io::BufReader;
+use std::io::{BufReader, BufWriter};
 use std::path::{Path, PathBuf};
 
 use dyn_clone::DynClone;
@@ -45,7 +45,7 @@ impl Solution {
 
         // load the solution itself
         let data: SolutionDto = {
-            let path = problem_base.with_file_name(format!("{}.json", problem.id));
+            let path = problem_base.with_file_name(format!("{}_solution.json", problem.id));
             let file = File::open(path)?;
             let reader = BufReader::new(file);
             serde_json::from_reader(reader)?
@@ -73,16 +73,27 @@ impl Solution {
         dir: &PathBuf,
     ) -> std::io::Result<SolutionMetaDto> {
         let problem_base = dir.join(&problem.id);
-        let meta_path = problem_base.with_file_name(format!("{}_meta.json", problem.id));
-
-        // TODO: Add any other solution saving here
 
         let solution_meta = SolutionMetaDto {
             solver_name: solver_name,
-            score: 0.0,
+            score: self.score.0,
         };
-        let solution_meta_json = serde_json::to_string_pretty(&solution_meta)?;
-        std::fs::write(meta_path, solution_meta_json)?;
+
+        // write metadata
+        {
+            let path = problem_base.with_file_name(format!("{}_meta.json", problem.id));
+            let file = File::create(path)?;
+            let writer = BufWriter::new(file);
+            serde_json::to_writer(writer, &solution_meta)?;
+        }
+
+        // write the solution
+        {
+            let path = problem_base.with_file_name(format!("{}_solution.json", problem.id));
+            let file = File::create(path)?;
+            let writer = BufWriter::new(file);
+            serde_json::to_writer(writer, &self.data)?;
+        }
         Ok(solution_meta)
     }
 }
