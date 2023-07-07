@@ -1,4 +1,7 @@
-use std::path::{Path, PathBuf};
+use std::{
+    cmp::Ordering,
+    path::{Path, PathBuf},
+};
 
 use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 
@@ -49,26 +52,29 @@ fn solve_problem(
         };
 
         let new_best_sol = match &best_sol {
-            Some((_, best_sol)) if solution.score.0 > best_sol.score => true,
-            None => true,
-            _ => false,
+            Some((_, best_sol)) => solution.score.0.cmp(&best_sol.score),
+            None => Ordering::Greater,
         };
 
-        if new_best_sol {
+        if new_best_sol == Ordering::Greater {
             solution.save(full_solver_name, &problem, best_dir)?;
         }
 
         match (&best_sol, &new_best_sol) {
             // new best
-            (Some((_, best_sol)), true) => {
+            (Some((_, best_sol)), Ordering::Greater) => {
                 let improvement = solution.score.0 - best_sol.score;
                 println!(
                     "!!! WE ARE WINNING SON !!!, improvement of {}! previous best: {}",
                     improvement, best_sol.score
                 );
             }
+            // likely the same solver
+            (Some((_, _)), Ordering::Equal) => {
+                println!("ties current best");
+            }
             // nothing special, no new best
-            (Some((_, best_sol)), false) => {
+            (Some((_, best_sol)), Ordering::Less) => {
                 println!("worse than best: {}", best_sol.score);
             }
             // first solution ever
