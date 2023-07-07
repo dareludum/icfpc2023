@@ -13,9 +13,11 @@ fn solve_problem(
 ) -> std::io::Result<()> {
     let problem = Problem::load(problem_path)?;
 
-    for solver in solvers {
-        let full_solver_name = solver.name();
-        let cur_solver_dir = &base_solution_dir.join("current").join(full_solver_name);
+    let solvers = solvers.clone();
+
+    for mut solver in solvers {
+        let full_solver_name = solver.name().to_owned();
+        let cur_solver_dir = &base_solution_dir.join("current").join(&full_solver_name);
         let best_dir = &base_solution_dir.join("best");
         std::fs::create_dir_all(cur_solver_dir)?;
 
@@ -23,7 +25,7 @@ fn solve_problem(
         let solution = solver.solve(&problem);
 
         // write the solution
-        let solution_meta = solution.save(full_solver_name.into(), &problem, cur_solver_dir)?;
+        let solution_meta = solution.save(full_solver_name.clone(), &problem, cur_solver_dir)?;
 
         // compare with the best solution
         let best_sol = match Solution::load(best_dir, &problem) {
@@ -94,7 +96,7 @@ pub fn default_command(
             gui_main(&std::path::PathBuf::from(problem_path));
             Ok(())
         }
-        (paths, Some(solvers)) => solve(&solvers, paths),
+        (paths, Some(mut solvers)) => solve(&mut solvers, paths),
         (_, None) => panic!("No problem paths and solvers provided"),
     }
 }

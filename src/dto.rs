@@ -1,13 +1,14 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Attendee {
     pub x: f32,
     pub y: f32,
     pub tastes: Vec<f32>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+// Default is to avoid Option<ProblemDto> in solvers
+#[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct ProblemDto {
     pub room_width: f32,
     pub room_height: f32,
@@ -18,12 +19,12 @@ pub struct ProblemDto {
     pub attendees: Vec<Attendee>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SolutionDto {
     pub placements: Vec<Placement>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Placement {
     pub x: f32,
     pub y: f32,
