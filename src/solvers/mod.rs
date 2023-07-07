@@ -74,7 +74,7 @@ impl Solution {
         solver_name: String,
         problem: &Problem,
         dir: &Path,
-    ) -> std::io::Result<SolutionMetaDto> {
+    ) -> std::io::Result<()> {
         let problem_base = dir.join(&problem.id);
 
         let solution_meta = SolutionMetaDto {
@@ -97,7 +97,8 @@ impl Solution {
             let writer = BufWriter::new(file);
             serde_json::to_writer(writer, &self.data)?;
         }
-        Ok(solution_meta)
+
+        Ok(())
     }
 }
 
