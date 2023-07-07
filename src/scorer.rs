@@ -11,8 +11,8 @@ fn calculate_distance(attendee: &Attendee, placement: &Placement) -> f32 {
 }
 
 fn calculate_impact(attendee: &Attendee, instrument: Instrument, distance: f32) -> i64 {
-    let impact = 1000000 as f64 * attendee.tastes[instrument.0 as usize] as f64
-        / (distance * distance) as f64;
+    let impact =
+        1000000_f64 * attendee.tastes[instrument.0 as usize] as f64 / (distance * distance) as f64;
 
     impact.ceil() as i64
 }
@@ -25,8 +25,6 @@ fn calculate_attendee_happiness(
     let mut happiness = 0;
 
     for i in 0..musicians.len() {
-        let i = i as usize;
-
         let is_blocked = musicians
             .iter()
             .enumerate()

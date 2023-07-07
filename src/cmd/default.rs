@@ -1,19 +1,20 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+
+use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 
 use crate::{
     gui::gui_main,
     solvers::{create_solver, Problem, Solution, Solver},
 };
-use rayon::prelude::*;
 
 fn solve_problem(
-    solvers: &Vec<Box<dyn Solver>>,
-    base_solution_dir: &PathBuf,
-    problem_path: &PathBuf,
+    solvers: &[Box<dyn Solver>],
+    base_solution_dir: &Path,
+    problem_path: &Path,
 ) -> std::io::Result<()> {
     let problem = Problem::load(problem_path)?;
 
-    let solvers = solvers.clone();
+    let solvers = solvers.to_owned();
 
     for mut solver in solvers {
         let full_solver_name = solver.name().to_owned();
@@ -41,7 +42,7 @@ fn solve_problem(
         };
 
         if new_best_sol {
-            solution.save(full_solver_name.into(), &problem, best_dir)?;
+            solution.save(full_solver_name, &problem, best_dir)?;
         }
 
         print!(
@@ -96,7 +97,7 @@ pub fn default_command(
             gui_main(&std::path::PathBuf::from(problem_path), "no_op");
             Ok(())
         }
-        (paths, Some(mut solvers)) => solve(&mut solvers, paths),
+        (paths, Some(solvers)) => solve(&solvers, paths),
         (_, None) => panic!("No problem paths and solvers provided"),
     }
 }
