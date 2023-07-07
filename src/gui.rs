@@ -12,21 +12,39 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
 
     const WIDTH: i32 = 800;
     const HEIGHT: i32 = 800;
+    const MARGIN: i32 = 20;
 
     let (mut rl, thread) = raylib::init()
-        .size(WIDTH, HEIGHT)
+        .size(WIDTH + MARGIN * 2, HEIGHT + MARGIN * 2)
         .title(&format!("ICFPC2023 - Dare Ludum - {:#?}", problem_path))
         .build();
 
-    let ratio_x = if data.room_width < WIDTH as f32 {
+    let max_x = data
+        .attendees
+        .iter()
+        .max_by_key(|a| a.x as i32)
+        .unwrap()
+        .x
+        .min(data.room_width)
+        .max(data.stage_bottom_left.0 + data.stage_width);
+    let max_y = data
+        .attendees
+        .iter()
+        .max_by_key(|a| a.y as i32)
+        .unwrap()
+        .y
+        .min(data.room_height)
+        .max(data.stage_bottom_left.1 + data.stage_height);
+
+    let ratio_x = if max_x < WIDTH as f32 {
         1.0
     } else {
-        WIDTH as f32 / data.room_width
+        WIDTH as f32 / max_x
     };
-    let ratio_y = if data.room_height < HEIGHT as f32 {
+    let ratio_y = if max_y < HEIGHT as f32 {
         1.0
     } else {
-        HEIGHT as f32 / data.room_height
+        HEIGHT as f32 / max_y
     };
     let ratio = ratio_x.min(ratio_y);
     dbg!(ratio);
@@ -61,25 +79,25 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
         d.clear_background(Color::GRAY);
 
         d.draw_rectangle(
-            0,
-            0,
+            MARGIN,
+            MARGIN,
             (data.room_width * ratio) as i32,
             (data.room_height * ratio) as i32,
             Color::LIGHTGRAY,
         );
 
         d.draw_rectangle(
-            (data.stage_bottom_left.0 * ratio) as i32,
-            (data.stage_bottom_left.1 * ratio) as i32,
+            MARGIN + (data.stage_bottom_left.0 * ratio) as i32,
+            MARGIN + (data.stage_bottom_left.1 * ratio) as i32,
             (data.stage_width * ratio) as i32,
             (data.stage_height * ratio) as i32,
-            Color::GRAY,
+            Color::BEIGE,
         );
 
         for attendee in data.attendees.iter() {
             d.draw_circle(
-                (attendee.x * ratio) as i32,
-                (attendee.y * ratio) as i32,
+                MARGIN + (attendee.x * ratio) as i32,
+                MARGIN + (attendee.y * ratio) as i32,
                 10.0 * ratio,
                 Color::BROWN,
             );
@@ -89,8 +107,8 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
             for p in &solution.placements {
                 if !p.x.is_nan() {
                     d.draw_circle(
-                        (p.x * ratio) as i32,
-                        (p.y * ratio) as i32,
+                        MARGIN + (p.x * ratio) as i32,
+                        MARGIN + (p.y * ratio) as i32,
                         10.0 * ratio,
                         Color::BLUE,
                     );
