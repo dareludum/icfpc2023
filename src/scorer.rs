@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use rayon::prelude::*;
 
 use crate::{
@@ -162,10 +164,11 @@ impl ImpactMap {
         &mut self,
         instrument: &Instrument,
         attendees: &[Attendee],
+        new_taken_positions: &HashSet<usize>,
         blocked_positions: &[(usize, usize)],
         grid: &[Position],
     ) {
-        let mut needs_best_score_update = false;
+        let mut needs_best_score_update = new_taken_positions.contains(&self.best_score_pos_idx);
         for (idx, idx_attendee) in blocked_positions {
             let pos = &grid[*idx];
             let attendee = &attendees[*idx_attendee];

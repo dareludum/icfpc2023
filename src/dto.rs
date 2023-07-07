@@ -1,4 +1,4 @@
-use std::{path::Path, fs::File, io::BufReader};
+use std::{fs::File, io::BufReader, path::Path};
 
 use serde::{Deserialize, Serialize};
 
@@ -38,7 +38,6 @@ impl SolutionDto {
         Ok(serde_json::from_reader(reader)?)
     }
 }
-
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Placement {
