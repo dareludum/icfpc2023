@@ -108,11 +108,9 @@ impl Solver for Greedy {
                 );
                 scores.push(score);
             }
-            println!("greedy: {} instrument impact map precomputed", i.0);
+            // println!("greedy: {} instrument impact map precomputed", i.0);
             (*i, scores)
         }).collect::<HashMap<_, _>>();
-
-        dbg!(self.allowed_positions.len());
 
         for i in remaining_instruments.iter() {
             let scores = &position_scores[i];
@@ -152,6 +150,8 @@ impl Solver for Greedy {
                 pos.taken = true;
             }
         }
+
+        println!("greedy: {} musicians left", self.remaining_musicians.len());
 
         (
             SolutionDto {
