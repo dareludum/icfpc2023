@@ -21,6 +21,7 @@ fn solve_problem(
         let cur_solver_dir = &base_solution_dir.join("current").join(&full_solver_name);
         let best_dir = &base_solution_dir.join("best");
         std::fs::create_dir_all(cur_solver_dir)?;
+        std::fs::create_dir_all(best_dir)?;
 
         // solve
         let solution = solver.solve(&problem);
