@@ -1,4 +1,5 @@
 use crate::{
+    common::Position,
     dto::{Attendee, Instrument, Placement, ProblemDto, SolutionDto},
     solvers::Score,
 };
@@ -10,7 +11,7 @@ fn calculate_distance(attendee: &Attendee, placement: &Placement) -> f32 {
     (x * x + y * y).sqrt()
 }
 
-fn calculate_impact(attendee: &Attendee, instrument: Instrument, distance: f32) -> i64 {
+fn calculate_impact(attendee: &Attendee, instrument: &Instrument, distance: f32) -> i64 {
     let impact =
         1000000_f64 * attendee.tastes[instrument.0 as usize] as f64 / (distance * distance) as f64;
 
@@ -35,7 +36,7 @@ fn calculate_attendee_happiness(
         }
 
         let distance = calculate_distance(attendee, &placements[i]);
-        happiness += calculate_impact(attendee, musicians[i], distance);
+        happiness += calculate_impact(attendee, &musicians[i], distance);
     }
 
     happiness
@@ -73,24 +74,17 @@ fn is_sound_blocked(k: &Placement, k_1: &Placement, attendee: &Attendee) -> bool
 
 pub fn score_instrument(
     attendees: &[Attendee],
-    existing_placements: &[Placement],
     placement: &Placement,
-    instrument: Instrument,
+    instrument: &Instrument,
 ) -> Score {
     let mut score = 0;
 
     for attendee in attendees {
-        let is_blocked = existing_placements
-            .iter()
-            .filter(|p| !p.x.is_nan())
-            .any(|p| is_sound_blocked(placement, p, attendee));
-        if !is_blocked {
-            score += calculate_impact(
-                attendee,
-                instrument,
-                calculate_distance(attendee, placement),
-            );
-        }
+        score += calculate_impact(
+            attendee,
+            instrument,
+            calculate_distance(attendee, placement),
+        );
     }
 
     Score(score)
@@ -104,6 +98,46 @@ pub fn score(problem: &ProblemDto, solution: &SolutionDto) -> Score {
     }
 
     Score(score)
+}
+
+#[derive(Clone)]
+pub struct ImpactMap {
+    pub scores: Vec<Score>,
+}
+
+impl ImpactMap {
+    pub fn new(instrument: &Instrument, attendees: &[Attendee], grid: &[Position]) -> Self {
+        let mut scores = vec![];
+        for pos in grid {
+            let score = score_instrument(&attendees, &pos.p, instrument);
+            scores.push(score);
+        }
+        ImpactMap { scores }
+    }
+
+    pub fn update(
+        &mut self,
+        instrument: &Instrument,
+        new_pos: &Placement,
+        attendees: &[Attendee],
+        grid: &[Position],
+    ) {
+        for (idx, pos) in grid.iter().enumerate() {
+            // We don't care for those anymore, so can keep them invalid
+            if pos.taken {
+                continue;
+            }
+            for attendee in attendees {
+                if is_sound_blocked(&pos.p, new_pos, attendee) {
+                    self.scores[idx].0 -= calculate_impact(
+                        attendee,
+                        instrument,
+                        calculate_distance(attendee, &pos.p),
+                    );
+                }
+            }
+        }
+    }
 }
 
 // #[cfg(test)]

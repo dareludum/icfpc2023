@@ -7,7 +7,9 @@ pub struct Attendee {
     pub tastes: Vec<f32>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord, Clone, Copy)]
+#[derive(
+    Serialize, Deserialize, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord, Clone, Copy,
+)]
 pub struct Instrument(pub u32);
 
 // Default is to avoid Option<ProblemDto> in solvers

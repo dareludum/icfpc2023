@@ -3,18 +3,12 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 use rayon::prelude::*;
 
 use crate::{
+    common::Position,
     dto::{Instrument, Placement, ProblemDto, SolutionDto},
-    scorer::score_instrument,
+    scorer::ImpactMap,
 };
 
 use super::{Problem, Solver};
-
-#[derive(Clone, Copy)]
-struct Position {
-    x: f32,
-    y: f32,
-    taken: bool,
-}
 
 #[derive(Default, Clone)]
 pub struct Greedy {
@@ -22,6 +16,7 @@ pub struct Greedy {
     allowed_positions: Vec<Position>,
     placements: Vec<Placement>,
     remaining_musicians: HashSet<usize>,
+    impact_maps: HashMap<Instrument, ImpactMap>,
 }
 
 impl Solver for Greedy {
@@ -63,8 +58,10 @@ impl Solver for Greedy {
             let mut curr_x = x;
             while curr_x < until_x {
                 self.allowed_positions.push(Position {
-                    x: curr_x,
-                    y: curr_y,
+                    p: Placement {
+                        x: curr_x,
+                        y: curr_y,
+                    },
                     taken: false,
                 });
                 curr_x += delta;
@@ -82,6 +79,19 @@ impl Solver for Greedy {
             });
         }
 
+        // Compute impact maps
+        println!("greedy: computing impact maps");
+        self.impact_maps = (0..=max_instrument)
+            .map(|i| Instrument(i))
+            .collect::<Vec<_>>()
+            .par_iter()
+            .map(|i| {
+                let impact_map =
+                    ImpactMap::new(i, &self.problem.attendees, &self.allowed_positions);
+                (*i, impact_map)
+            })
+            .collect();
+
         println!("greedy: initialized");
     }
 
@@ -96,24 +106,8 @@ impl Solver for Greedy {
         }
         let remaining_instruments = remaining_instruments.into_iter().collect::<Vec<_>>();
 
-        // Compute position scores
-        let position_scores = remaining_instruments.par_iter().map(|i| {
-            let mut scores = vec![];
-            for pos in &self.allowed_positions {
-                let score = score_instrument(
-                    &self.problem.attendees,
-                    &self.placements,
-                    &Placement { x: pos.x, y: pos.y },
-                    *i,
-                );
-                scores.push(score);
-            }
-            // println!("greedy: {} instrument impact map precomputed", i.0);
-            (*i, scores)
-        }).collect::<HashMap<_, _>>();
-
         for i in remaining_instruments.iter() {
-            let scores = &position_scores[i];
+            let scores = &self.impact_maps[i].scores;
             let best = scores
                 .iter()
                 .zip(self.allowed_positions.iter())
@@ -136,20 +130,26 @@ impl Solver for Greedy {
         self.remaining_musicians.remove(&idx);
 
         let best_pos = self.allowed_positions[best_pos_idx];
-        self.placements[idx] = Placement {
-            x: best_pos.x,
-            y: best_pos.y,
-        };
+        self.placements[idx] = best_pos.p;
 
         // Remove the positions near the new musician
         for pos in &mut self.allowed_positions {
-            let x = pos.x - best_pos.x;
-            let y = pos.y - best_pos.y;
+            let x = pos.p.x - best_pos.p.x;
+            let y = pos.p.y - best_pos.p.y;
             let dist = (x * x + y * y).sqrt();
             if dist <= 10.0 {
                 pos.taken = true;
             }
         }
+
+        self.impact_maps.par_iter_mut().for_each(|(_i, im)| {
+            im.update(
+                &best_instrument,
+                &best_pos.p,
+                &self.problem.attendees,
+                &self.allowed_positions,
+            );
+        });
 
         println!("greedy: {} musicians left", self.remaining_musicians.len());
 

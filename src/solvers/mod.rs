@@ -69,12 +69,7 @@ impl Solution {
         Ok((solution, metadata))
     }
 
-    pub fn save(
-        &self,
-        solver_name: String,
-        problem: &Problem,
-        dir: &Path,
-    ) -> std::io::Result<()> {
+    pub fn save(&self, solver_name: String, problem: &Problem, dir: &Path) -> std::io::Result<()> {
         let problem_base = dir.join(&problem.id);
 
         let solution_meta = SolutionMetaDto {
