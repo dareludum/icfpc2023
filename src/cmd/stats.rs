@@ -3,7 +3,7 @@ use std::{fs, path::Path};
 use crate::dto::SolutionMetaDto;
 
 pub fn stats(problems_n: &[String], solvers: &[String]) -> Result<(), std::io::Error> {
-    let mut sum_best: f64 = 0.0;
+    let mut sum_best = 0;
 
     for n in problems_n {
         let best_fname = format!("./solutions/best/{n}_meta.json");
