@@ -130,12 +130,14 @@ impl Solver for Greedy {
         self.placements[idx] = best_pos.p;
 
         // Remove the positions near the new musician
-        for pos in &mut self.allowed_positions {
+        let mut new_taken_positions = HashSet::new();
+        for (idx, pos) in self.allowed_positions.iter_mut().enumerate() {
             let x = pos.p.x - best_pos.p.x;
             let y = pos.p.y - best_pos.p.y;
             let dist = (x * x + y * y).sqrt();
             if dist <= 10.0 {
                 pos.taken = true;
+                new_taken_positions.insert(idx);
             }
         }
 
@@ -155,6 +157,7 @@ impl Solver for Greedy {
             im.update(
                 &best_instrument,
                 &self.problem.attendees,
+                &new_taken_positions,
                 &blocked_positions,
                 &self.allowed_positions,
             );

@@ -19,8 +19,5 @@ pub struct Args {
 #[derive(Subcommand, Debug)]
 pub enum Commands {
     Stats,
-    Score {
-        problem: String,
-        solution: String,
-    },
+    Score { problem: String, solution: String },
 }
