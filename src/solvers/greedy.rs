@@ -1,4 +1,4 @@
-use std::collections::{BTreeSet, HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use rayon::prelude::*;
 
@@ -100,25 +100,22 @@ impl Solver for Greedy {
         let mut best_instrument = Instrument(u32::MAX);
         let mut best_score = i64::MIN;
 
-        let mut remaining_instruments = BTreeSet::new();
+        let mut remaining_instruments = BTreeMap::new();
         for idx in &self.remaining_musicians {
-            remaining_instruments.insert(self.problem.musicians[*idx]);
+            let instrument = self.problem.musicians[*idx];
+            if !remaining_instruments.contains_key(&instrument) {
+                remaining_instruments.insert(instrument, 0);
+            } else {
+                *remaining_instruments.get_mut(&instrument).unwrap() += 1;
+            }
         }
-        let remaining_instruments = remaining_instruments.into_iter().collect::<Vec<_>>();
 
-        for i in remaining_instruments.iter() {
-            let scores = &self.impact_maps[i].scores;
-            let best = scores
-                .iter()
-                .zip(self.allowed_positions.iter())
-                .enumerate()
-                .filter(|(_idx, (_s, p))| !p.taken)
-                .max_by_key(|(_idx, (s, _p))| s.0)
-                .unwrap();
-            if best_score < best.1 .0 .0 {
-                best_score = best.1 .0 .0;
+        for i in remaining_instruments.keys() {
+            let impact_map = &self.impact_maps[i];
+            if best_score < impact_map.best_score.0 {
+                best_score = impact_map.best_score.0;
                 best_instrument = *i;
-                best_pos_idx = best.0;
+                best_pos_idx = impact_map.best_score_pos_idx;
             }
         }
 
@@ -142,7 +139,13 @@ impl Solver for Greedy {
             }
         }
 
-        self.impact_maps.par_iter_mut().for_each(|(_i, im)| {
+        if remaining_instruments[&best_instrument] == 0 {
+            remaining_instruments.remove(&best_instrument);
+        }
+        self.impact_maps.par_iter_mut().for_each(|(i, im)| {
+            if !remaining_instruments.contains_key(i) {
+                return;
+            }
             im.update(
                 &best_instrument,
                 &best_pos.p,

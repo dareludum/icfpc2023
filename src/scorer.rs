@@ -103,6 +103,8 @@ pub fn score(problem: &ProblemDto, solution: &SolutionDto) -> Score {
 #[derive(Clone)]
 pub struct ImpactMap {
     pub scores: Vec<Score>,
+    pub best_score_pos_idx: usize,
+    pub best_score: Score,
 }
 
 impl ImpactMap {
@@ -112,7 +114,25 @@ impl ImpactMap {
             let score = score_instrument(&attendees, &pos.p, instrument);
             scores.push(score);
         }
-        ImpactMap { scores }
+
+        let (best_score_pos_idx, best_score) = Self::get_best_score(&scores, grid);
+
+        ImpactMap {
+            scores,
+            best_score_pos_idx,
+            best_score,
+        }
+    }
+
+    fn get_best_score(scores: &[Score], grid: &[Position]) -> (usize, Score) {
+        let best = scores
+            .iter()
+            .zip(grid)
+            .enumerate()
+            .filter(|(_idx, (_s, p))| !p.taken)
+            .max_by_key(|(_idx, (s, _p))| s.0)
+            .unwrap();
+        (best.0, *best.1 .0)
     }
 
     pub fn update(
@@ -122,6 +142,7 @@ impl ImpactMap {
         attendees: &[Attendee],
         grid: &[Position],
     ) {
+        let mut needs_best_score_update = false;
         for (idx, pos) in grid.iter().enumerate() {
             // We don't care for those anymore, so can keep them invalid
             if pos.taken {
@@ -134,8 +155,14 @@ impl ImpactMap {
                         instrument,
                         calculate_distance(attendee, &pos.p),
                     );
+                    needs_best_score_update = true;
                 }
             }
+        }
+        if needs_best_score_update {
+            let (best_score_pos_idx, best_score) = Self::get_best_score(&self.scores, grid);
+            self.best_score_pos_idx = best_score_pos_idx;
+            self.best_score = best_score;
         }
     }
 }
