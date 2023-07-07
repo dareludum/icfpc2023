@@ -9,6 +9,7 @@ use helpers::*;
 use solvers::SOLVERS;
 
 mod cmd;
+mod common;
 mod dto;
 mod gui;
 mod helpers;
