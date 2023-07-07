@@ -37,7 +37,7 @@ fn solve_problem(
         };
 
         let new_best_sol = match &best_sol {
-            Some((_, best_sol)) if solution_meta.score < best_sol.score => true,
+            Some((_, best_sol)) if solution_meta.score > best_sol.score => true,
             None => true,
             _ => false,
         };
