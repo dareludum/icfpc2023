@@ -22,6 +22,19 @@ fn calculate_attendee_happiness(
     let mut happiness = 0.0;
 
     for musician in musicians {
+        let is_blocked = musicians.iter().any(|m| {
+            *m != *musician
+                && is_sound_blocked(
+                    &placements[*musician as usize],
+                    &placements[*m as usize],
+                    attendee,
+                )
+        });
+
+        if is_blocked {
+            continue;
+        }
+
         let distance = calculate_distance(attendee, &placements[*musician as usize]);
         happiness += calculate_impact(attendee, *musician, distance);
     }
