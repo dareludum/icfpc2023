@@ -5,11 +5,11 @@ use rayon::prelude::*;
 
 use crate::{
     common::Position,
-    dto::{Attendee, Instrument, Placement, ProblemDto, SolutionDto},
+    dto::{Attendee, Instrument, Point2D, ProblemDto, SolutionDto},
     solvers::Score,
 };
 
-fn calculate_impact(attendee: &Attendee, instrument: &Instrument, placement: &Placement) -> i64 {
+fn calculate_impact(attendee: &Attendee, instrument: &Instrument, placement: &Point2D) -> i64 {
     let x = attendee.x - placement.x;
     let y = attendee.y - placement.y;
 
@@ -24,7 +24,7 @@ fn calculate_impact(attendee: &Attendee, instrument: &Instrument, placement: &Pl
 fn calculate_attendee_happiness(
     attendee: &Attendee,
     musicians: &[Instrument],
-    placements: &[Placement],
+    placements: &[Point2D],
 ) -> i64 {
     let mut happiness = 0;
     // println!("{:?}", attendee);
@@ -49,20 +49,20 @@ fn calculate_attendee_happiness(
     happiness
 }
 
-fn is_sound_blocked_2(k: &Placement, k_1: &Placement, attendee: &Attendee) -> bool {
+fn is_sound_blocked_2(k: &Point2D, k_1: &Point2D, attendee: &Attendee) -> bool {
     let r: f32 = 5.0;
     let circle_center = k_1;
     let line_start = k;
     let line_end = attendee;
 
     // Create vector from the start of the line to the center of the circle
-    let start_to_center = Placement {
+    let start_to_center = Point2D {
         x: circle_center.x - line_start.x,
         y: circle_center.y - line_start.y,
     };
 
     // Create the vector that represents the line
-    let line_vector = Placement {
+    let line_vector = Point2D {
         x: line_end.x - line_start.x,
         y: line_end.y - line_start.y,
     };
@@ -82,13 +82,13 @@ fn is_sound_blocked_2(k: &Placement, k_1: &Placement, attendee: &Attendee) -> bo
     }
 
     // Calculate the coordinates of the closest Placement
-    let closest_point = Placement {
+    let closest_point = Point2D {
         x: line_start.x + t * line_vector.x,
         y: line_start.y + t * line_vector.y,
     };
 
     // Calculate the vector from the closest Placement to the center of the circle
-    let closest_to_center = Placement {
+    let closest_to_center = Point2D {
         x: circle_center.x - closest_point.x,
         y: circle_center.y - closest_point.y,
     };
@@ -101,7 +101,7 @@ fn is_sound_blocked_2(k: &Placement, k_1: &Placement, attendee: &Attendee) -> bo
     closest_to_center_len_sq <= r * r
 }
 
-fn is_sound_blocked(k: &Placement, k_1: &Placement, attendee: &Attendee) -> bool {
+fn is_sound_blocked(k: &Point2D, k_1: &Point2D, attendee: &Attendee) -> bool {
     line_circle_intersection(attendee.into(), k.into(), k_1.into(), 5.0)
 }
 
@@ -165,7 +165,7 @@ mod tests {
 
 pub fn score_instrument(
     attendees: &[Attendee],
-    placement: &Placement,
+    placement: &Point2D,
     instrument: &Instrument,
 ) -> Score {
     let mut score = 0;
@@ -223,7 +223,7 @@ impl ImpactMap {
     }
 
     pub fn calculate_blocked_positions(
-        new_pos: &Placement,
+        new_pos: &Point2D,
         attendees: &[Attendee],
         grid: &[Position],
     ) -> Vec<(usize, usize)> {
