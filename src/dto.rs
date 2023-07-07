@@ -1,5 +1,6 @@
 use std::{fs::File, io::BufReader, path::Path};
 
+use nalgebra::Vector2;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -43,6 +44,30 @@ impl SolutionDto {
 pub struct Placement {
     pub x: f32,
     pub y: f32,
+}
+
+impl Placement {
+    pub fn as_vec(&self) -> Vector2<f32> {
+        self.into()
+    }
+}
+
+impl Into<Vector2<f32>> for &Placement {
+    fn into(self) -> Vector2<f32> {
+        Vector2::new(self.x, self.y)
+    }
+}
+
+impl Into<Vector2<f32>> for &Attendee {
+    fn into(self) -> Vector2<f32> {
+        Vector2::new(self.x, self.y)
+    }
+}
+
+impl From<Vector2<f32>> for Placement {
+    fn from(value: Vector2<f32>) -> Self {
+        Placement { x: value.x, y: value.y }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]

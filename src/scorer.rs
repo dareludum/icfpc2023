@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use rayon::prelude::*;
+use nalgebra::Vector2;
 
 use crate::{
     common::Position,
@@ -8,16 +9,14 @@ use crate::{
     solvers::Score,
 };
 
-fn calculate_distance(attendee: &Attendee, placement: &Placement) -> f32 {
+fn calculate_impact(attendee: &Attendee, instrument: &Instrument, placement: &Placement) -> i64 {
     let x = attendee.x - placement.x;
     let y = attendee.y - placement.y;
 
-    (x * x + y * y).sqrt()
-}
+    let distance_square = x * x + y * y;
 
-fn calculate_impact(attendee: &Attendee, instrument: &Instrument, distance: f32) -> i64 {
     let impact =
-        1000000_f64 * attendee.tastes[instrument.0 as usize] as f64 / (distance * distance) as f64;
+        1000000_f64 * attendee.tastes[instrument.0 as usize] as f64 / distance_square as f64;
 
     impact.ceil() as i64
 }
@@ -28,52 +27,78 @@ fn calculate_attendee_happiness(
     placements: &[Placement],
 ) -> i64 {
     let mut happiness = 0;
+    // println!("{:?}", attendee);
 
-    for i in 0..musicians.len() {
-        let is_blocked = musicians
-            .iter()
-            .enumerate()
-            .any(|(j, _)| j != i && is_sound_blocked(&placements[i], &placements[j], attendee));
+    'hap_loop: for i in 0..musicians.len() {
+        // println!("musician {:?} instrument {:?}", placements[i], musicians[i]);
 
-        if is_blocked {
-            continue;
+        for other_i in 0..musicians.len() {
+            if other_i == i {
+                continue
+            }
+
+            if is_sound_blocked(&placements[i], &placements[other_i], attendee) {
+                continue 'hap_loop
+            }
         }
 
-        let distance = calculate_distance(attendee, &placements[i]);
-        happiness += calculate_impact(attendee, &musicians[i], distance);
+        let impact = calculate_impact(attendee, &musicians[i], &placements[i]);
+        happiness += impact;
     }
 
     happiness
 }
 
 fn is_sound_blocked(k: &Placement, k_1: &Placement, attendee: &Attendee) -> bool {
-    let r: f32 = 5.0;
+    line_circle_intersection(attendee.into(), k.into(), k_1.into(), 5.0)
+}
 
-    // Step 1: Find the equation of the line: y = mx + c
-    let m = (attendee.y - k.y) / (attendee.x - k.x);
-    let c = k.y - m * k.x;
-
-    // Step 2: Substitute y in the equation of the circle and get a quadratic equation: Ax^2 + Bx + C = 0
-    let a = 1.0 + m.powi(2);
-    let b = 2.0 * m * c - 2.0 * k_1.x - 2.0 * k_1.y * m;
-    let cc = k_1.x.powi(2) + k_1.y.powi(2) + c.powi(2) - r.powi(2) - 2.0 * c * k_1.y;
-
-    // Step 3: Check if the equation has real roots by computing the discriminant
-    let discriminant = b.powi(2) - 4.0 * a * cc;
-
-    // If discriminant < 0, no real roots, so the line doesn't intersect the circle
-    if discriminant < 0.0 {
-        return false;
+fn line_circle_intersection(a: Vector2<f32>, b: Vector2<f32>, circle_center: Vector2<f32>, circle_radius: f32) -> bool {
+    assert!((a - circle_center).norm() > circle_radius);
+    assert!((b - circle_center).norm() > circle_radius);
+    let a_b = b - a;
+    let a_b_norm = a_b.norm();
+    assert!(a_b_norm > circle_radius);
+    let a_b_dir = a_b / a_b_norm;
+    let a_circle = circle_center - a;
+    let projected_len = a_b_dir.dot(&a_circle);
+    if projected_len < 0. || projected_len > a_b_norm {
+        return false
     }
+    let circle_deviation = (a_circle.norm_squared() - projected_len * projected_len).sqrt();
+    circle_deviation < circle_radius
+}
 
-    // Otherwise, compute the two intersection points and check if they lie within the segment
-    let t1 = (-b - discriminant.sqrt()) / (2.0 * a);
-    let t2 = (-b + discriminant.sqrt()) / (2.0 * a);
 
-    let x_min = if k.x <= attendee.x { k.x } else { attendee.x };
-    let x_max = if k.x >= attendee.x { k.x } else { attendee.x };
+#[cfg(test)]
+mod tests {
+    use nalgebra::Vector2;
 
-    (x_min <= t1 && t1 <= x_max) || (x_min <= t2 && t2 <= x_max)
+    use crate::scorer::line_circle_intersection;
+
+    #[test]
+    fn test_cases() {
+        let tests = [
+            ((0., 0.), (1., 0.), (0.5, 0.), 0.01, true),
+            ((0., 0.), (10., 0.), (5., 5.), 3., false),
+            ((0., 0.), (10., 0.), (5., 5.), 5.1, true),
+            ((0., 0.), (10., 0.), (5., 5.), 4.9, false),
+
+            // circle alongside the line
+            ((-2.42, -3.58), (14.76, 6.64), (7.1, 8.44), 5., false),
+            ((-2.42, -3.58), (14.76, 6.64), (7.1, 7.44), 5., true),
+
+            // circle slightly behind the line
+            ((-2.42, -3.58), (14.76, 6.64), (17.56, 11.7), 5., false),
+
+            ((1100., 800.), (1100., 150.), (1100., 100.), 5., false),
+        ];
+
+        for (a, b, c, r, int) in tests {
+            let res = line_circle_intersection(Vector2::new(a.0, a.1), Vector2::new(b.0, b.1), Vector2::new(c.0, c.1), r);
+            assert_eq!(res, int, "intersection of segment from {:?} to {:?} by {:?} r {} should be {}", a, b, c, r, int);
+        }
+    }
 }
 
 pub fn score_instrument(
@@ -87,7 +112,7 @@ pub fn score_instrument(
         score += calculate_impact(
             attendee,
             instrument,
-            calculate_distance(attendee, placement),
+            placement,
         );
     }
 
@@ -173,7 +198,7 @@ impl ImpactMap {
             let pos = &grid[*idx];
             let attendee = &attendees[*idx_attendee];
             self.scores[*idx].0 -=
-                calculate_impact(attendee, instrument, calculate_distance(attendee, &pos.p));
+                calculate_impact(attendee, instrument, &pos.p);
             if *idx == self.best_score_pos_idx {
                 needs_best_score_update = true;
             }
