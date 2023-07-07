@@ -1,28 +1,40 @@
 mod no_op;
 
 use std::path::PathBuf;
+use std::fs::File;
+use std::io::BufReader;
 
 use dyn_clone::DynClone;
 
-use crate::{dto::SolvedSolutionDto, helpers::os_str_to_str};
+use crate::{dto::{SolvedSolutionDto, ProblemDto}, helpers::os_str_to_str};
 
 pub struct Problem {
     pub id: String,
+    pub data: ProblemDto,
 }
+
 
 impl Problem {
     pub fn load(problem_path: &PathBuf) -> std::io::Result<Self> {
         let id = os_str_to_str(problem_path.file_stem());
-        Ok(Problem { id })
+        let file = File::open(problem_path)?;
+        let reader = BufReader::new(file);
+
+        // Read the JSON contents of the file as an instance of `User`.
+        Ok(Problem {
+            id,
+            data: serde_json::from_reader(reader)?,
+        })
     }
 }
 
 pub struct Score(u64);
 
+
 pub struct Solution {
     pub score: Score,
-    // TODO: Add other result fields
 }
+
 
 impl Solution {
     pub fn load(dir: &PathBuf, problem: &Problem) -> std::io::Result<(Self, SolvedSolutionDto)> {
