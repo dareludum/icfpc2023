@@ -6,6 +6,9 @@ use std::path::Path;
 
 use dyn_clone::DynClone;
 
+use crate::common::Position;
+use crate::dto::Instrument;
+use crate::scorer::ImpactMap;
 use crate::{
     dto::{ProblemDto, SolutionDto, SolutionMetaDto},
     helpers::os_str_to_str,
@@ -112,6 +115,14 @@ pub trait Solver: DynClone + Sync + Send {
                 data: solution,
             };
         }
+    }
+
+    fn get_impact_map(&self, _instrument: &Instrument) -> Option<&ImpactMap> {
+        None
+    }
+
+    fn get_grid(&self) -> Option<&[Position]> {
+        None
     }
 }
 
