@@ -1,3 +1,5 @@
+use rayon::prelude::*;
+
 use crate::{
     common::Position,
     dto::{Attendee, Instrument, Placement, ProblemDto, SolutionDto},
@@ -135,28 +137,42 @@ impl ImpactMap {
         (best.0, *best.1 .0)
     }
 
-    pub fn update(
-        &mut self,
-        instrument: &Instrument,
+    pub fn calculate_blocked_positions(
         new_pos: &Placement,
         attendees: &[Attendee],
         grid: &[Position],
+    ) -> Vec<(usize, usize)> {
+        grid.par_iter()
+            .enumerate()
+            // We don't care for those anymore, so can keep them invalid
+            .filter(|(_idx, pos)| !pos.taken)
+            .flat_map(|(idx, pos)| {
+                let mut result = vec![];
+                for (idx_attendee, attendee) in attendees.iter().enumerate() {
+                    if is_sound_blocked(&pos.p, new_pos, attendee) {
+                        result.push((idx, idx_attendee));
+                    }
+                }
+                result
+            })
+            .collect()
+    }
+
+    pub fn update(
+        &mut self,
+        instrument: &Instrument,
+        attendees: &[Attendee],
+        blocked_positions: &[(usize, usize)],
+        grid: &[Position],
     ) {
         let mut needs_best_score_update = false;
-        for (idx, pos) in grid.iter().enumerate() {
-            // We don't care for those anymore, so can keep them invalid
-            if pos.taken {
-                continue;
-            }
-            for attendee in attendees {
-                if is_sound_blocked(&pos.p, new_pos, attendee) {
-                    self.scores[idx].0 -= calculate_impact(
-                        attendee,
-                        instrument,
-                        calculate_distance(attendee, &pos.p),
-                    );
-                    needs_best_score_update = true;
-                }
+        for (idx, idx_attendee) in blocked_positions {
+            let pos = &grid[*idx];
+            let attendee = &attendees[*idx_attendee];
+            self.scores[*idx].0 -=
+                calculate_impact(attendee, instrument, calculate_distance(attendee, &pos.p));
+            if *idx == self.best_score_pos_idx {
+                needs_best_score_update = true;
             }
         }
         if needs_best_score_update {
