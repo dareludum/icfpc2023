@@ -47,12 +47,7 @@ impl Solution {
         let problem_base = dir.join(&problem.id);
 
         // load the solution itself
-        let data: SolutionDto = {
-            let path = problem_base.with_file_name(format!("{}_solution.json", problem.id));
-            let file = File::open(path)?;
-            let reader = BufReader::new(file);
-            serde_json::from_reader(reader)?
-        };
+        let data = SolutionDto::load(&problem_base.with_file_name(format!("{}_solution.json", problem.id)))?;
 
         // load solution metadata
         let metadata: SolutionMetaDto = {

@@ -1,3 +1,4 @@
+use std::path::Path;
 use std::{ffi::OsString, fs::DirEntry, path::PathBuf};
 
 use clap::Parser;
@@ -5,7 +6,9 @@ use cmd::default::*;
 use cmd::stats::*;
 use cmd::Args;
 use cmd::Commands;
+use dto::SolutionDto;
 use helpers::*;
+use solvers::Problem;
 use solvers::SOLVERS;
 
 mod cmd;
@@ -94,6 +97,13 @@ fn main() -> std::io::Result<()> {
 
             problems.sort_by_key(|x| x.parse::<u8>().unwrap());
             stats(&problems, &solvers.unwrap_or_else(list_current_solvers))
+        }
+        Some(Commands::Score { problem, solution }) => {
+            let problem = Problem::load(Path::new(problem))?;
+            let solution = SolutionDto::load(Path::new(solution))?;
+            let score = scorer::score(&problem.data, &solution);
+            println!("score: {}", score.0);
+            Ok(())
         }
         _ => {
             let problem_paths = get_problem_paths(&args, false)?;

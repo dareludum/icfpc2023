@@ -1,3 +1,5 @@
+use std::{path::Path, fs::File, io::BufReader};
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -28,6 +30,15 @@ pub struct ProblemDto {
 pub struct SolutionDto {
     pub placements: Vec<Placement>,
 }
+
+impl SolutionDto {
+    pub fn load(path: &Path) -> std::io::Result<Self> {
+        let file = File::open(path)?;
+        let reader = BufReader::new(file);
+        Ok(serde_json::from_reader(reader)?)
+    }
+}
+
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
 pub struct Placement {
