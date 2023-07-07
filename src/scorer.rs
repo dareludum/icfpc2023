@@ -71,19 +71,26 @@ fn is_sound_blocked(k: &Placement, k_1: &Placement, attendee: &Attendee) -> bool
     (x_min <= t1 && t1 <= x_max) || (x_min <= t2 && t2 <= x_max)
 }
 
-pub fn score_musician(
+pub fn score_instrument(
     attendees: &[Attendee],
+    existing_placements: &[Placement],
     placement: &Placement,
     instrument: Instrument,
 ) -> Score {
     let mut score = 0;
 
     for attendee in attendees {
-        score += calculate_impact(
-            attendee,
-            instrument,
-            calculate_distance(attendee, placement),
-        );
+        let is_blocked = existing_placements
+            .iter()
+            .filter(|p| !p.x.is_nan())
+            .any(|p| is_sound_blocked(placement, p, attendee));
+        if !is_blocked {
+            score += calculate_impact(
+                attendee,
+                instrument,
+                calculate_distance(attendee, placement),
+            );
+        }
     }
 
     Score(score)
