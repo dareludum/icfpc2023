@@ -2,7 +2,7 @@ use colorgrad::Gradient;
 use raylib::prelude::*;
 
 use crate::{
-    common::Position,
+    common::Grid,
     dto::{Attendee, Instrument},
     scorer::ImpactMap,
     solvers::{create_solver, Problem},
@@ -61,8 +61,9 @@ impl ColorGradient {
         Self::new(min_taste, max_taste)
     }
 
-    pub fn for_impact_map(grid: &[Position], impact_map: &ImpactMap) -> Self {
+    pub fn for_impact_map(grid: &Grid, impact_map: &ImpactMap) -> Self {
         let min = grid
+            .positions
             .iter()
             .zip(&impact_map.scores)
             .filter(|(pos, _s)| !pos.taken)
@@ -70,6 +71,7 @@ impl ColorGradient {
             .min()
             .unwrap() as f64;
         let max = grid
+            .positions
             .iter()
             .zip(&impact_map.scores)
             .filter(|(pos, _s)| !pos.taken)
@@ -257,7 +259,7 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
             if let Some(impact_map) = solver.get_impact_map(&Instrument(instrument)) {
                 let grid = solver.get_grid().unwrap();
                 let gradient = ColorGradient::for_impact_map(grid, impact_map);
-                for (pos, score) in grid.iter().zip(&impact_map.scores) {
+                for (pos, score) in grid.positions.iter().zip(&impact_map.scores) {
                     if !pos.taken {
                         d.draw_rectangle(
                             MARGIN + ((pos.p.x - 1.0) * ratio) as i32,

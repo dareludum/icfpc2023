@@ -6,7 +6,7 @@ use std::path::Path;
 
 use dyn_clone::DynClone;
 
-use crate::common::Position;
+use crate::common::Grid;
 use crate::dto::Instrument;
 use crate::scorer::ImpactMap;
 use crate::{
@@ -121,7 +121,7 @@ pub trait Solver: DynClone + Sync + Send {
         None
     }
 
-    fn get_grid(&self) -> Option<&[Position]> {
+    fn get_grid(&self) -> Option<&Grid> {
         None
     }
 }

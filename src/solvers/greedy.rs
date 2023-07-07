@@ -3,7 +3,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use rayon::prelude::*;
 
 use crate::{
-    common::Position,
+    common::Grid,
     dto::{Instrument, Point2D, ProblemDto, SolutionDto},
     scorer::ImpactMap,
 };
@@ -13,7 +13,7 @@ use super::{Problem, Solver};
 #[derive(Default, Clone)]
 pub struct Greedy {
     problem: ProblemDto,
-    allowed_positions: Vec<Position>,
+    grid: Grid,
     placements: Vec<Point2D>,
     remaining_musicians: HashSet<usize>,
     impact_maps: HashMap<Instrument, ImpactMap>,
@@ -28,59 +28,16 @@ impl Solver for Greedy {
         self.impact_maps.get(instrument)
     }
 
-    fn get_grid(&self) -> Option<&[Position]> {
-        Some(&self.allowed_positions)
+    fn get_grid(&self) -> Option<&Grid> {
+        Some(&self.grid)
     }
 
     fn initialize(&mut self, problem: &Problem) {
         self.problem = problem.data.clone();
-        let x = self.problem.stage_bottom_left.0 + 10.0;
-        let y = self.problem.stage_bottom_left.1 + 10.0;
-        let until_x = self.problem.stage_bottom_left.0 + self.problem.stage_width - 10.0;
-        let until_y = self.problem.stage_bottom_left.1 + self.problem.stage_height - 10.0;
 
-        println!("greedy: {} total musicians", self.problem.musicians.len());
+        self.grid = Grid::new(&self.problem);
+
         let max_instrument = self.problem.musicians.iter().map(|i| i.0).max().unwrap();
-        println!("greedy: {} total instruments", max_instrument);
-
-        let weight_factor = self.problem.musicians.len() as f32 / max_instrument as f32;
-        let max_position_count = 1000000.0 / max_instrument as f32 / weight_factor;
-        let min_position_count = self.problem.musicians.len() as f32 * 4.0;
-        const MIN_DELTA: f32 = 0.5;
-        let mut delta = MIN_DELTA;
-        loop {
-            let position_count = (((until_x - x) / delta) + 1.0) * (((until_y - y) / delta) + 1.0);
-            if position_count < min_position_count {
-                if delta > MIN_DELTA {
-                    delta /= 1.1;
-                }
-                break;
-            }
-            if position_count < max_position_count {
-                break;
-            }
-            delta *= 1.01;
-        }
-
-        println!("greedy: delta = {}", delta);
-
-        let mut curr_y = y;
-        while curr_y <= until_y {
-            let mut curr_x = x;
-            while curr_x <= until_x {
-                self.allowed_positions.push(Position {
-                    p: Point2D {
-                        x: curr_x,
-                        y: curr_y,
-                    },
-                    taken: false,
-                });
-                curr_x += delta;
-            }
-            curr_y += delta;
-        }
-
-        println!("greedy: {} total positions", self.allowed_positions.len());
 
         for i in 0..self.problem.musicians.len() {
             self.remaining_musicians.insert(i);
@@ -97,8 +54,7 @@ impl Solver for Greedy {
             .collect::<Vec<_>>()
             .par_iter()
             .map(|i| {
-                let impact_map =
-                    ImpactMap::new(i, &self.problem.attendees, &self.allowed_positions);
+                let impact_map = ImpactMap::new(i, &self.problem.attendees, &self.grid);
                 (*i, impact_map)
             })
             .collect();
@@ -139,12 +95,12 @@ impl Solver for Greedy {
             .unwrap();
         self.remaining_musicians.remove(&idx);
 
-        let best_pos = self.allowed_positions[best_pos_idx];
+        let best_pos = self.grid.positions[best_pos_idx];
         self.placements[idx] = best_pos.p;
 
         // Remove the positions near the new musician
         let mut new_taken_positions = HashSet::new();
-        for (idx, pos) in self.allowed_positions.iter_mut().enumerate() {
+        for (idx, pos) in self.grid.positions.iter_mut().enumerate() {
             let x = pos.p.x - best_pos.p.x;
             let y = pos.p.y - best_pos.p.y;
             let dist = (x * x + y * y).sqrt();
@@ -161,7 +117,7 @@ impl Solver for Greedy {
         let blocked_positions = ImpactMap::calculate_blocked_positions(
             &best_pos.p,
             &self.problem.attendees,
-            &self.allowed_positions,
+            &self.grid,
         );
         self.impact_maps.par_iter_mut().for_each(|(i, im)| {
             if !remaining_instruments.contains_key(i) {
@@ -170,9 +126,9 @@ impl Solver for Greedy {
             im.update(
                 &best_instrument,
                 &self.problem.attendees,
+                &self.grid,
                 &new_taken_positions,
                 &blocked_positions,
-                &self.allowed_positions,
             );
         });
 

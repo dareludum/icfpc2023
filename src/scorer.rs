@@ -4,7 +4,7 @@ use nalgebra::Vector2;
 use rayon::prelude::*;
 
 use crate::{
-    common::Position,
+    common::Grid,
     dto::{Attendee, Instrument, Point2D, ProblemDto, SolutionDto},
     solvers::Score,
 };
@@ -195,9 +195,9 @@ pub struct ImpactMap {
 }
 
 impl ImpactMap {
-    pub fn new(instrument: &Instrument, attendees: &[Attendee], grid: &[Position]) -> Self {
+    pub fn new(instrument: &Instrument, attendees: &[Attendee], grid: &Grid) -> Self {
         let mut scores = vec![];
-        for pos in grid {
+        for pos in &grid.positions {
             let score = score_instrument(attendees, &pos.p, instrument);
             scores.push(score);
         }
@@ -211,10 +211,10 @@ impl ImpactMap {
         }
     }
 
-    fn get_best_score(scores: &[Score], grid: &[Position]) -> (usize, Score) {
+    fn get_best_score(scores: &[Score], grid: &Grid) -> (usize, Score) {
         let best = scores
             .iter()
-            .zip(grid)
+            .zip(&grid.positions)
             .enumerate()
             .filter(|(_idx, (_s, p))| !p.taken)
             .max_by_key(|(_idx, (s, _p))| s.0)
@@ -225,9 +225,10 @@ impl ImpactMap {
     pub fn calculate_blocked_positions(
         new_pos: &Point2D,
         attendees: &[Attendee],
-        grid: &[Position],
+        grid: &Grid,
     ) -> Vec<(usize, usize)> {
-        grid.par_iter()
+        grid.positions
+            .par_iter()
             .enumerate()
             // We don't care for those anymore, so can keep them invalid
             .filter(|(_idx, pos)| !pos.taken)
@@ -247,13 +248,13 @@ impl ImpactMap {
         &mut self,
         instrument: &Instrument,
         attendees: &[Attendee],
+        grid: &Grid,
         new_taken_positions: &HashSet<usize>,
         blocked_positions: &[(usize, usize)],
-        grid: &[Position],
     ) {
         let mut needs_best_score_update = new_taken_positions.contains(&self.best_score_pos_idx);
         for (idx, idx_attendee) in blocked_positions {
-            let pos = &grid[*idx];
+            let pos = &grid.positions[*idx];
             let attendee = &attendees[*idx_attendee];
             self.scores[*idx].0 -= calculate_impact(attendee, instrument, &pos.p);
             if *idx == self.best_score_pos_idx {
