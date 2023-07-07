@@ -142,14 +142,20 @@ impl Solver for Greedy {
         if remaining_instruments[&best_instrument] == 0 {
             remaining_instruments.remove(&best_instrument);
         }
+
+        let blocked_positions = ImpactMap::calculate_blocked_positions(
+            &best_pos.p,
+            &self.problem.attendees,
+            &self.allowed_positions,
+        );
         self.impact_maps.par_iter_mut().for_each(|(i, im)| {
             if !remaining_instruments.contains_key(i) {
                 return;
             }
             im.update(
                 &best_instrument,
-                &best_pos.p,
                 &self.problem.attendees,
+                &blocked_positions,
                 &self.allowed_positions,
             );
         });
