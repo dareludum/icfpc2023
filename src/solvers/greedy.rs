@@ -1,11 +1,13 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeSet, HashMap, HashSet};
+
+use rayon::prelude::*;
 
 use crate::{
     dto::{Instrument, Placement, ProblemDto, SolutionDto},
-    scorer::score_musician,
+    scorer::score_instrument,
 };
 
-use super::{Problem, Score, Solver};
+use super::{Problem, Solver};
 
 #[derive(Clone, Copy)]
 struct Position {
@@ -19,7 +21,6 @@ pub struct Greedy {
     problem: ProblemDto,
     allowed_positions: Vec<Position>,
     placements: Vec<Placement>,
-    position_scores: HashMap<Instrument, Vec<Score>>,
     remaining_musicians: HashSet<usize>,
 }
 
@@ -35,14 +36,20 @@ impl Solver for Greedy {
         let until_x = self.problem.stage_bottom_left.0 + self.problem.stage_width - 10.0;
         let until_y = self.problem.stage_bottom_left.1 + self.problem.stage_height - 10.0;
 
+        println!("greedy: {} total musicians", self.problem.musicians.len());
         let max_instrument = self.problem.musicians.iter().map(|i| i.0).max().unwrap();
         println!("greedy: {} total instruments", max_instrument);
 
-        let max_position_count = 1000000.0 / max_instrument as f32;
+        let max_position_count = 10000.0 / max_instrument as f32;
+        let min_position_count = self.problem.musicians.len() as f32 * 4.0;
         const MIN_DELTA: f32 = 0.5;
         let mut delta = MIN_DELTA;
         loop {
             let position_count = ((until_x - x) / delta) * ((until_y - y) / delta);
+            if position_count < min_position_count {
+                delta /= 1.1;
+                break;
+            }
             if position_count < max_position_count {
                 break;
             }
@@ -67,22 +74,6 @@ impl Solver for Greedy {
 
         println!("greedy: {} total positions", self.allowed_positions.len());
 
-        // Precompute position scores
-
-        for i in 0..=max_instrument {
-            let mut scores = vec![];
-            for pos in &self.allowed_positions {
-                let score = score_musician(
-                    &self.problem.attendees,
-                    &Placement { x: pos.x, y: pos.y },
-                    Instrument(i),
-                );
-                scores.push(score);
-            }
-            self.position_scores.insert(Instrument(i), scores);
-            println!("greedy: {} instrument impact map precomputed", i);
-        }
-
         for i in 0..self.problem.musicians.len() {
             self.remaining_musicians.insert(i);
             self.placements.push(Placement {
@@ -96,19 +87,35 @@ impl Solver for Greedy {
 
     fn solve_step(&mut self) -> (SolutionDto, bool) {
         let mut best_pos_idx = usize::MAX;
-        let mut best_instrument = u32::MAX;
+        let mut best_instrument = Instrument(u32::MAX);
         let mut best_score = i64::MIN;
 
-        let mut remaining_instruments = HashSet::new();
+        let mut remaining_instruments = BTreeSet::new();
         for idx in &self.remaining_musicians {
             remaining_instruments.insert(self.problem.musicians[*idx]);
         }
+        let remaining_instruments = remaining_instruments.into_iter().collect::<Vec<_>>();
 
-        for i in 0..self.position_scores.len() as u32 {
-            if !remaining_instruments.contains(&Instrument(i)) {
-                continue;
+        // Compute position scores
+        let position_scores = remaining_instruments.par_iter().map(|i| {
+            let mut scores = vec![];
+            for pos in &self.allowed_positions {
+                let score = score_instrument(
+                    &self.problem.attendees,
+                    &self.placements,
+                    &Placement { x: pos.x, y: pos.y },
+                    *i,
+                );
+                scores.push(score);
             }
-            let scores = &self.position_scores[&Instrument(i)];
+            println!("greedy: {} instrument impact map precomputed", i.0);
+            (*i, scores)
+        }).collect::<HashMap<_, _>>();
+
+        dbg!(self.allowed_positions.len());
+
+        for i in remaining_instruments.iter() {
+            let scores = &position_scores[i];
             let best = scores
                 .iter()
                 .zip(self.allowed_positions.iter())
@@ -118,7 +125,7 @@ impl Solver for Greedy {
                 .unwrap();
             if best_score < best.1 .0 .0 {
                 best_score = best.1 .0 .0;
-                best_instrument = i;
+                best_instrument = *i;
                 best_pos_idx = best.0;
             }
         }
@@ -126,7 +133,7 @@ impl Solver for Greedy {
         let idx = *self
             .remaining_musicians
             .iter()
-            .find(|idx| self.problem.musicians[**idx] == Instrument(best_instrument))
+            .find(|idx| self.problem.musicians[**idx] == best_instrument)
             .unwrap();
         self.remaining_musicians.remove(&idx);
 

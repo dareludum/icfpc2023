@@ -87,12 +87,14 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
 
         if let Some(solution) = solution.as_ref() {
             for p in &solution.placements {
-                d.draw_circle(
-                    (p.x * ratio) as i32,
-                    (p.y * ratio) as i32,
-                    10.0 * ratio,
-                    Color::BLUE,
-                );
+                if !p.x.is_nan() {
+                    d.draw_circle(
+                        (p.x * ratio) as i32,
+                        (p.y * ratio) as i32,
+                        10.0 * ratio,
+                        Color::BLUE,
+                    );
+                }
             }
         }
     }
