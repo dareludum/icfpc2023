@@ -68,7 +68,7 @@ submit_solution() {
 
         local submission_score="$(printf "%s" "$submission_status" | jq .Success.submission.score)"
         if [ "$submission_score" = '"Processing"' ]; then
-            println "Processing, awaiting 1sec...\n"
+            printf "Processing, awaiting 1sec...\n"
             sleep 1
             continue
         fi
