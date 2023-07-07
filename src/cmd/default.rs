@@ -93,7 +93,7 @@ pub fn default_command(
 ) -> Result<(), std::io::Error> {
     match (problem_paths, solvers) {
         ([problem_path], None) => {
-            gui_main(&std::path::PathBuf::from(problem_path));
+            gui_main(&std::path::PathBuf::from(problem_path), "no_op");
             Ok(())
         }
         (paths, Some(mut solvers)) => solve(&mut solvers, paths),
