@@ -37,7 +37,7 @@ fn calculate_attendee_happiness(
                 continue
             }
 
-            if is_sound_blocked(&placements[i], &placements[other_i], attendee) {
+            if is_sound_blocked_2(&placements[i], &placements[other_i], attendee) {
                 continue 'hap_loop
             }
         }
@@ -47,6 +47,51 @@ fn calculate_attendee_happiness(
     }
 
     happiness
+}
+
+fn is_sound_blocked_2(k: &Placement, k_1: &Placement, attendee: &Attendee) -> bool {
+    let r: f32 = 5.0;
+    let circle_center = k_1;
+    let line_start = k;
+    let line_end = attendee;
+
+    // Create vector from the start of the line to the center of the circle
+    let start_to_center = Placement { x: circle_center.x - line_start.x, y: circle_center.y - line_start.y };
+
+    // Create the vector that represents the line
+    let line_vector = Placement { x: line_end.x - line_start.x, y: line_end.y - line_start.y };
+
+    // Calculate the squared length of the line
+    let line_len_sq = line_vector.x * line_vector.x + line_vector.y * line_vector.y;
+
+    // Calculate the dot product of the start_to_center and the line_vector
+    let dot_product = start_to_center.x * line_vector.x + start_to_center.y * line_vector.y;
+
+    // Calculate the closest Placement on the line to the center of the circle
+    let t = dot_product / line_len_sq;
+
+    // If the closest Placement is outside the line segment, return false
+    if t < 0.0 || t > 1.0 {
+        return false;
+    }
+
+    // Calculate the coordinates of the closest Placement
+    let closest_point = Placement {
+        x: line_start.x + t * line_vector.x,
+        y: line_start.y + t * line_vector.y
+    };
+
+    // Calculate the vector from the closest Placement to the center of the circle
+    let closest_to_center = Placement {
+        x: circle_center.x - closest_point.x,
+        y: circle_center.y - closest_point.y
+    };
+
+    // Calculate the squared length of the vector
+    let closest_to_center_len_sq = closest_to_center.x * closest_to_center.x + closest_to_center.y * closest_to_center.y;
+
+    // If the squared length is less than r squared, the line intersects the circle
+    closest_to_center_len_sq <= r * r
 }
 
 fn is_sound_blocked(k: &Placement, k_1: &Placement, attendee: &Attendee) -> bool {
