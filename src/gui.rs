@@ -150,8 +150,8 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
         // TODO
 
         // ===== INTERACTION =====
-        match rl.get_key_pressed() {
-            Some(k) => match k {
+        if let Some(k) = rl.get_key_pressed() {
+            match k {
                 KeyboardKey::KEY_SPACE => loop {
                     if !done {
                         let (s, d) = solver.solve_step();
@@ -193,8 +193,7 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
                     }
                 }
                 _ => {}
-            },
-            None => {}
+            }
         }
 
         // ===== DRAWING =====
