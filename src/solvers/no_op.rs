@@ -19,7 +19,7 @@ impl Solver for NoOp {
     fn solve_step(&mut self) -> (SolutionDto, bool) {
         (
             SolutionDto {
-                placements: vec![Placement { x: 0.0, y: 0.0 }; self.problem.attendees.len()],
+                placements: vec![Placement { x: 0.0, y: 0.0 }; self.problem.musicians.len()],
             },
             true,
         )
