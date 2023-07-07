@@ -242,6 +242,16 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
                     );
                 }
             }
+            for p in &solution.placements {
+                if !p.x.is_nan() {
+                    d.draw_circle(
+                        MARGIN + (p.x * ratio) as i32,
+                        MARGIN + (p.y * ratio) as i32,
+                        5.0 * ratio,
+                        Color::BLACK,
+                    );
+                }
+            }
         }
 
         if let Some(instrument) = selected_instrument {
