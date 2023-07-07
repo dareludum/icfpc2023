@@ -94,7 +94,7 @@ pub fn default_command(
 ) -> Result<(), std::io::Error> {
     match (problem_paths, solvers) {
         ([problem_path], None) => {
-            gui_main(&std::path::PathBuf::from(problem_path), "no_op");
+            gui_main(&std::path::PathBuf::from(problem_path), "greedy");
             Ok(())
         }
         (paths, Some(solvers)) => solve(&solvers, paths),

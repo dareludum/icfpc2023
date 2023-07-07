@@ -16,7 +16,7 @@ impl Solver for NoOp {
         self.problem = problem.data.clone();
     }
 
-    fn solve_step(&self) -> (SolutionDto, bool) {
+    fn solve_step(&mut self) -> (SolutionDto, bool) {
         (
             SolutionDto {
                 placements: vec![Placement { x: 0.0, y: 0.0 }; self.problem.attendees.len()],

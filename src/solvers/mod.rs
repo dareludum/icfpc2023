@@ -1,3 +1,4 @@
+mod greedy;
 mod no_op;
 
 use std::fs::File;
@@ -12,6 +13,7 @@ use crate::{
     scorer::score,
 };
 
+use self::greedy::Greedy;
 use self::no_op::NoOp;
 
 #[derive(Clone)]
@@ -34,6 +36,7 @@ impl Problem {
     }
 }
 
+#[derive(Clone, Copy)]
 pub struct Score(pub i64);
 
 pub struct Solution {
@@ -104,7 +107,7 @@ pub trait Solver: DynClone + Sync + Send {
     fn name(&self) -> &str;
 
     fn initialize(&mut self, problem: &Problem);
-    fn solve_step(&self) -> (SolutionDto, bool);
+    fn solve_step(&mut self) -> (SolutionDto, bool);
 
     fn solve(&mut self, problem: &Problem) -> Solution {
         self.initialize(problem);
@@ -132,6 +135,7 @@ pub fn create_solver(solver_name: &str) -> Box<dyn Solver> {
 
 fn create_individual_solver(solver_name: &str) -> Box<dyn Solver> {
     match solver_name {
+        "greedy" => Box::<Greedy>::default(),
         "no_op" => Box::<NoOp>::default(),
         n => panic!("Unknown solver `{}`", n),
     }
