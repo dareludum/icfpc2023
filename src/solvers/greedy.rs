@@ -93,7 +93,7 @@ impl Solver for Greedy {
         // Compute impact maps
         println!("greedy: computing impact maps");
         self.impact_maps = (0..=max_instrument)
-            .map(|i| Instrument(i))
+            .map(Instrument)
             .collect::<Vec<_>>()
             .par_iter()
             .map(|i| {
@@ -114,8 +114,10 @@ impl Solver for Greedy {
         let mut remaining_instruments = BTreeMap::new();
         for idx in &self.remaining_musicians {
             let instrument = self.problem.musicians[*idx];
-            if !remaining_instruments.contains_key(&instrument) {
-                remaining_instruments.insert(instrument, 0);
+            if let std::collections::btree_map::Entry::Vacant(e) =
+                remaining_instruments.entry(instrument)
+            {
+                e.insert(0);
             } else {
                 *remaining_instruments.get_mut(&instrument).unwrap() += 1;
             }

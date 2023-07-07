@@ -86,7 +86,7 @@ impl ColorGradient {
             self.pos_gradient.as_ref().unwrap()
         };
         let c = gradient.at(value).to_rgba8();
-        raylib::prelude::Color::new(c[0], c[1], c[2], c[3]).into()
+        raylib::prelude::Color::new(c[0], c[1], c[2], c[3])
     }
 }
 
@@ -165,7 +165,7 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
                 KeyboardKey::KEY_Q => {
                     if selected_instrument == Some(0) {
                         selected_instrument = None;
-                    } else if selected_instrument == None {
+                    } else if selected_instrument.is_none() {
                         selected_instrument = Some(max_instrument);
                     } else {
                         selected_instrument = Some(selected_instrument.unwrap() - 1);
@@ -178,7 +178,7 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
                     }
                 }
                 KeyboardKey::KEY_W => {
-                    if selected_instrument == None {
+                    if selected_instrument.is_none() {
                         selected_instrument = Some(0);
                     } else if selected_instrument == Some(max_instrument) {
                         selected_instrument = None;
