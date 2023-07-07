@@ -2,7 +2,7 @@ mod no_op;
 
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use dyn_clone::DynClone;
 
@@ -11,6 +11,8 @@ use crate::{
     helpers::os_str_to_str,
     scorer::score,
 };
+
+use self::no_op::NoOp;
 
 #[derive(Clone)]
 pub struct Problem {
@@ -40,7 +42,7 @@ pub struct Solution {
 }
 
 impl Solution {
-    pub fn load(dir: &PathBuf, problem: &Problem) -> std::io::Result<(Self, SolutionMetaDto)> {
+    pub fn load(dir: &Path, problem: &Problem) -> std::io::Result<(Self, SolutionMetaDto)> {
         let problem_base = dir.join(&problem.id);
 
         // load the solution itself
@@ -70,12 +72,12 @@ impl Solution {
         &self,
         solver_name: String,
         problem: &Problem,
-        dir: &PathBuf,
+        dir: &Path,
     ) -> std::io::Result<SolutionMetaDto> {
         let problem_base = dir.join(&problem.id);
 
         let solution_meta = SolutionMetaDto {
-            solver_name: solver_name,
+            solver_name,
             score: self.score.0,
         };
 
@@ -130,7 +132,7 @@ pub fn create_solver(solver_name: &str) -> Box<dyn Solver> {
 
 fn create_individual_solver(solver_name: &str) -> Box<dyn Solver> {
     match solver_name {
-        "no_op" => Box::new(no_op::NoOp::default()),
+        "no_op" => Box::<NoOp>::default(),
         n => panic!("Unknown solver `{}`", n),
     }
 }
