@@ -61,7 +61,7 @@ fn solve_problem(
         match (&best_sol, &new_best_sol) {
             // new best
             (Some((_, best_sol)), true) => {
-                let improvement = best_sol.score - solution.score.0;
+                let improvement = solution.score.0 - best_sol.score;
                 println!(
                     "!!! WE ARE WINNING SON !!!, improvement of {}! previous best: {}",
                     improvement, best_sol.score
