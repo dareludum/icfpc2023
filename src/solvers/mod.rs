@@ -12,6 +12,7 @@ use crate::{
     scorer::score,
 };
 
+#[derive(Clone)]
 pub struct Problem {
     pub id: String,
     pub data: ProblemDto,
@@ -88,14 +89,21 @@ impl Solution {
 
 pub trait Solver: DynClone + Sync + Send {
     fn name(&self) -> &str;
-    // TODO: Add the proper types for the contest problem
-    fn solve_core(&self, problem: &Problem) -> SolutionDto;
 
-    fn solve(&self, problem: &Problem) -> Solution {
-        let solution = self.solve_core(problem);
-        Solution {
-            score: score(&problem.data, &solution),
-            data: solution,
+    fn initialize(&mut self, problem: &Problem);
+    fn solve_step(&self) -> (SolutionDto, bool);
+
+    fn solve(&mut self, problem: &Problem) -> Solution {
+        self.initialize(problem);
+        loop {
+            let (solution, done) = self.solve_step();
+            if !done {
+                continue;
+            }
+            return Solution {
+                score: score(&problem.data, &solution),
+                data: solution,
+            };
         }
     }
 }
@@ -111,7 +119,7 @@ pub fn create_solver(solver_name: &str) -> Box<dyn Solver> {
 
 fn create_individual_solver(solver_name: &str) -> Box<dyn Solver> {
     match solver_name {
-        "no_op" => Box::new(no_op::NoOp {}),
+        "no_op" => Box::new(no_op::NoOp::default()),
         n => panic!("Unknown solver `{}`", n),
     }
 }
