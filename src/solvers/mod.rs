@@ -1,5 +1,4 @@
 mod greedy;
-mod no_op;
 
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
@@ -14,7 +13,6 @@ use crate::{
 };
 
 use self::greedy::Greedy;
-use self::no_op::NoOp;
 
 #[derive(Clone)]
 pub struct Problem {
@@ -126,7 +124,7 @@ pub trait Solver: DynClone + Sync + Send {
 
 dyn_clone::clone_trait_object!(Solver);
 
-pub const SOLVERS: &[&str] = &["no_op", "greedy"];
+pub const SOLVERS: &[&str] = &["greedy"];
 
 pub fn create_solver(solver_name: &str) -> Box<dyn Solver> {
     // TODO: Copy-paste processors support from previous year if needed
@@ -136,7 +134,6 @@ pub fn create_solver(solver_name: &str) -> Box<dyn Solver> {
 fn create_individual_solver(solver_name: &str) -> Box<dyn Solver> {
     match solver_name {
         "greedy" => Box::<Greedy>::default(),
-        "no_op" => Box::<NoOp>::default(),
         n => panic!("Unknown solver `{}`", n),
     }
 }
