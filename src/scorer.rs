@@ -77,7 +77,7 @@ fn is_sound_blocked_2(k: &Placement, k_1: &Placement, attendee: &Attendee) -> bo
     let t = dot_product / line_len_sq;
 
     // If the closest Placement is outside the line segment, return false
-    if t < 0.0 || t > 1.0 {
+    if !(0.0..=1.0).contains(&t) {
         return false;
     }
 
@@ -198,7 +198,7 @@ impl ImpactMap {
     pub fn new(instrument: &Instrument, attendees: &[Attendee], grid: &[Position]) -> Self {
         let mut scores = vec![];
         for pos in grid {
-            let score = score_instrument(&attendees, &pos.p, instrument);
+            let score = score_instrument(attendees, &pos.p, instrument);
             scores.push(score);
         }
 

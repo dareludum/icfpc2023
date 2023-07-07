@@ -52,15 +52,15 @@ impl Placement {
     }
 }
 
-impl Into<Vector2<f32>> for &Placement {
-    fn into(self) -> Vector2<f32> {
-        Vector2::new(self.x, self.y)
+impl From<&Placement> for Vector2<f32> {
+    fn from(val: &Placement) -> Self {
+        Vector2::new(val.x, val.y)
     }
 }
 
-impl Into<Vector2<f32>> for &Attendee {
-    fn into(self) -> Vector2<f32> {
-        Vector2::new(self.x, self.y)
+impl From<&Attendee> for Vector2<f32> {
+    fn from(val: &Attendee) -> Self {
+        Vector2::new(val.x, val.y)
     }
 }
 
