@@ -43,28 +43,31 @@ impl Solver for Greedy {
         let max_instrument = self.problem.musicians.iter().map(|i| i.0).max().unwrap();
         println!("greedy: {} total instruments", max_instrument);
 
-        let max_position_count = 10000.0 / max_instrument as f32;
+        let weight_factor = self.problem.musicians.len() as f32 / max_instrument as f32;
+        let max_position_count = 1000000.0 / max_instrument as f32 / weight_factor;
         let min_position_count = self.problem.musicians.len() as f32 * 4.0;
         const MIN_DELTA: f32 = 0.5;
         let mut delta = MIN_DELTA;
         loop {
-            let position_count = ((until_x - x) / delta) * ((until_y - y) / delta);
+            let position_count = (((until_x - x) / delta) + 1.0) * (((until_y - y) / delta) + 1.0);
             if position_count < min_position_count {
-                delta /= 1.1;
+                if delta > MIN_DELTA {
+                    delta /= 1.1;
+                }
                 break;
             }
             if position_count < max_position_count {
                 break;
             }
-            delta *= 1.1;
+            delta *= 1.01;
         }
 
         println!("greedy: delta = {}", delta);
 
         let mut curr_y = y;
-        while curr_y < until_y {
+        while curr_y <= until_y {
             let mut curr_x = x;
-            while curr_x < until_x {
+            while curr_x <= until_x {
                 self.allowed_positions.push(Position {
                     p: Placement {
                         x: curr_x,
