@@ -72,6 +72,20 @@ fn is_sound_blocked(k: &Placement, k_1: &Placement, attendee: &Attendee) -> bool
     (x_min <= t1 && t1 <= x_max) || (x_min <= t2 && t2 <= x_max)
 }
 
+pub fn score_musician(attendees: &[Attendee], placements: &[Placement], musician: i32) -> Score {
+    let mut score = 0.0;
+
+    for attendee in attendees {
+        score += calculate_impact(
+            attendee,
+            musician,
+            calculate_distance(attendee, &placements[musician as usize]),
+        );
+    }
+
+    Score(score)
+}
+
 pub fn score(problem: &ProblemDto, solution: &SolutionDto) -> Score {
     let mut score = 0.0;
 
