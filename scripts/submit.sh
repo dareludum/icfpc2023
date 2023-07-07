@@ -92,7 +92,7 @@ submit_solution() {
 
 
 if [ "$#" -lt 2 ]; then
-    println 2>&1 "Usage: DIRECTORY [PROBLEM_ID]...\n"
+    printf 2>&1 "Usage: DIRECTORY [PROBLEM_ID]...\n"
     exit 1
 fi
 
