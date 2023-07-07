@@ -126,7 +126,7 @@ pub trait Solver: DynClone + Sync + Send {
 
 dyn_clone::clone_trait_object!(Solver);
 
-pub const SOLVERS: &[&str] = &["no_op"];
+pub const SOLVERS: &[&str] = &["no_op", "greedy"];
 
 pub fn create_solver(solver_name: &str) -> Box<dyn Solver> {
     // TODO: Copy-paste processors support from previous year if needed
