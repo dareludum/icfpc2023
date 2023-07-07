@@ -26,8 +26,20 @@ fn solve_problem(
         // solve
         let solution = solver.solve(&problem);
 
+        print!(
+            "{:15}{}: {} ",
+            format!("[problem {}]", problem.id),
+            solver.name(),
+            solution.score.0
+        );
+
+        if solution.score.0 < 0 {
+            println!("I am not in a mood to save this");
+            continue;
+        }
+
         // write the solution
-        let solution_meta = solution.save(full_solver_name.clone(), &problem, cur_solver_dir)?;
+        solution.save(full_solver_name.clone(), &problem, cur_solver_dir)?;
 
         // compare with the best solution
         let best_sol = match Solution::load(best_dir, &problem) {
@@ -37,7 +49,7 @@ fn solve_problem(
         };
 
         let new_best_sol = match &best_sol {
-            Some((_, best_sol)) if solution_meta.score > best_sol.score => true,
+            Some((_, best_sol)) if solution.score.0 > best_sol.score => true,
             None => true,
             _ => false,
         };
@@ -46,17 +58,10 @@ fn solve_problem(
             solution.save(full_solver_name, &problem, best_dir)?;
         }
 
-        print!(
-            "{:15}{}: {} ",
-            format!("[problem {}]", problem.id),
-            solver.name(),
-            solution_meta.score
-        );
-
         match (&best_sol, &new_best_sol) {
             // new best
             (Some((_, best_sol)), true) => {
-                let improvement = best_sol.score - solution_meta.score;
+                let improvement = best_sol.score - solution.score.0;
                 println!(
                     "!!! WE ARE WINNING SON !!!, improvement of {}! previous best: {}",
                     improvement, best_sol.score
@@ -64,7 +69,7 @@ fn solve_problem(
             }
             // nothing special, no new best
             (Some((_, best_sol)), false) => {
-                println!("lower than best: {}", best_sol.score);
+                println!("worse than best: {}", best_sol.score);
             }
             // first solution ever
             (None, _) => {
