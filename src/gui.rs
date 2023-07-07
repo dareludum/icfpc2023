@@ -41,13 +41,16 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
         // ===== INTERACTION =====
         match rl.get_key_pressed() {
             Some(k) => match k {
-                KeyboardKey::KEY_SPACE => {
+                KeyboardKey::KEY_SPACE => loop {
                     if !done {
                         let (s, d) = solver.solve_step();
                         solution = Some(s);
                         done = d;
                     }
-                }
+                    if !rl.is_key_down(KeyboardKey::KEY_LEFT_CONTROL) || done {
+                        break;
+                    }
+                },
                 _ => {}
             },
             None => {}
@@ -77,7 +80,7 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
             d.draw_circle(
                 (attendee.x * ratio) as i32,
                 (attendee.y * ratio) as i32,
-                2.5 * ratio,
+                10.0 * ratio,
                 Color::BROWN,
             );
         }

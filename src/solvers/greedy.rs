@@ -35,7 +35,21 @@ impl Solver for Greedy {
         let until_x = self.problem.stage_bottom_left.0 + self.problem.stage_width - 10.0;
         let until_y = self.problem.stage_bottom_left.1 + self.problem.stage_height - 10.0;
 
-        const DELTA: f32 = 0.5;
+        let max_instrument = self.problem.musicians.iter().map(|i| i.0).max().unwrap();
+        println!("greedy: {} total instruments", max_instrument);
+
+        let max_position_count = 1000000.0 / max_instrument as f32;
+        const MIN_DELTA: f32 = 0.5;
+        let mut delta = MIN_DELTA;
+        loop {
+            let position_count = ((until_x - x) / delta) * ((until_y - y) / delta);
+            if position_count < max_position_count {
+                break;
+            }
+            delta *= 1.1;
+        }
+
+        println!("greedy: delta = {}", delta);
 
         let mut curr_y = y;
         while curr_y < until_y {
@@ -46,13 +60,15 @@ impl Solver for Greedy {
                     y: curr_y,
                     taken: false,
                 });
-                curr_x += DELTA;
+                curr_x += delta;
             }
-            curr_y += DELTA;
+            curr_y += delta;
         }
 
+        println!("greedy: {} total positions", self.allowed_positions.len());
+
         // Precompute position scores
-        let max_instrument = self.problem.musicians.iter().map(|i| i.0).max().unwrap();
+
         for i in 0..=max_instrument {
             let mut scores = vec![];
             for pos in &self.allowed_positions {
@@ -64,6 +80,7 @@ impl Solver for Greedy {
                 scores.push(score);
             }
             self.position_scores.insert(Instrument(i), scores);
+            println!("greedy: {} instrument impact map precomputed", i);
         }
 
         for i in 0..self.problem.musicians.len() {
@@ -73,6 +90,8 @@ impl Solver for Greedy {
                 y: f32::NAN,
             });
         }
+
+        println!("greedy: initialized");
     }
 
     fn solve_step(&mut self) -> (SolutionDto, bool) {
@@ -122,7 +141,7 @@ impl Solver for Greedy {
             let x = pos.x - best_pos.x;
             let y = pos.y - best_pos.y;
             let dist = (x * x + y * y).sqrt();
-            if dist <= 20.0 {
+            if dist <= 10.0 {
                 pos.taken = true;
             }
         }
