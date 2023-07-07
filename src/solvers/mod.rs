@@ -32,7 +32,7 @@ impl Problem {
     }
 }
 
-pub struct Score(pub f64);
+pub struct Score(pub i64);
 
 pub struct Solution {
     pub score: Score,
