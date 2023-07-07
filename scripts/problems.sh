@@ -4,7 +4,7 @@ set -euo pipefail
 
 mkdir -p problems
 
-for (( i=1; i<=45; i++ ))
+for (( i=1; i<=55; i++ ))
 do
     url="https://api.icfpcontest.com/problem?problem_id=$i"
 
