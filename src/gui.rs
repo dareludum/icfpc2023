@@ -87,7 +87,7 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
                 d.draw_circle(
                     (p.x * ratio) as i32,
                     (p.y * ratio) as i32,
-                    5.0 * ratio,
+                    10.0 * ratio,
                     Color::BLUE,
                 );
             }

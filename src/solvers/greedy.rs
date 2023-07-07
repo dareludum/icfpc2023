@@ -122,7 +122,7 @@ impl Solver for Greedy {
             let x = pos.x - best_pos.x;
             let y = pos.y - best_pos.y;
             let dist = (x * x + y * y).sqrt();
-            if dist <= 10.0 {
+            if dist <= 20.0 {
                 pos.taken = true;
             }
         }
