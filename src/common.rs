@@ -1,7 +1,7 @@
-use crate::dto::Placement;
+use crate::dto::Point2D;
 
 #[derive(Clone, Copy)]
 pub struct Position {
-    pub p: Placement,
+    pub p: Point2D,
     pub taken: bool,
 }

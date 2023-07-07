@@ -29,7 +29,7 @@ pub struct ProblemDto {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SolutionDto {
-    pub placements: Vec<Placement>,
+    pub placements: Vec<Point2D>,
 }
 
 impl SolutionDto {
@@ -41,19 +41,19 @@ impl SolutionDto {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, Copy)]
-pub struct Placement {
+pub struct Point2D {
     pub x: f32,
     pub y: f32,
 }
 
-impl Placement {
+impl Point2D {
     pub fn as_vec(&self) -> Vector2<f32> {
         self.into()
     }
 }
 
-impl From<&Placement> for Vector2<f32> {
-    fn from(val: &Placement) -> Self {
+impl From<&Point2D> for Vector2<f32> {
+    fn from(val: &Point2D) -> Self {
         Vector2::new(val.x, val.y)
     }
 }
@@ -64,9 +64,9 @@ impl From<&Attendee> for Vector2<f32> {
     }
 }
 
-impl From<Vector2<f32>> for Placement {
+impl From<Vector2<f32>> for Point2D {
     fn from(value: Vector2<f32>) -> Self {
-        Placement {
+        Point2D {
             x: value.x,
             y: value.y,
         }

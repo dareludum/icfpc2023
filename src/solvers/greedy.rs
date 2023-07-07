@@ -4,7 +4,7 @@ use rayon::prelude::*;
 
 use crate::{
     common::Position,
-    dto::{Instrument, Placement, ProblemDto, SolutionDto},
+    dto::{Instrument, Point2D, ProblemDto, SolutionDto},
     scorer::ImpactMap,
 };
 
@@ -14,7 +14,7 @@ use super::{Problem, Solver};
 pub struct Greedy {
     problem: ProblemDto,
     allowed_positions: Vec<Position>,
-    placements: Vec<Placement>,
+    placements: Vec<Point2D>,
     remaining_musicians: HashSet<usize>,
     impact_maps: HashMap<Instrument, ImpactMap>,
 }
@@ -69,7 +69,7 @@ impl Solver for Greedy {
             let mut curr_x = x;
             while curr_x <= until_x {
                 self.allowed_positions.push(Position {
-                    p: Placement {
+                    p: Point2D {
                         x: curr_x,
                         y: curr_y,
                     },
@@ -84,7 +84,7 @@ impl Solver for Greedy {
 
         for i in 0..self.problem.musicians.len() {
             self.remaining_musicians.insert(i);
-            self.placements.push(Placement {
+            self.placements.push(Point2D {
                 x: f32::NAN,
                 y: f32::NAN,
             });
