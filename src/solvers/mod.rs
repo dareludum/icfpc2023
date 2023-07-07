@@ -1,21 +1,24 @@
 mod no_op;
 
-use std::path::PathBuf;
 use std::fs::File;
 use std::io::BufReader;
+use std::path::{Path, PathBuf};
 
 use dyn_clone::DynClone;
 
-use crate::{dto::{SolutionMetaDto, ProblemDto, SolutionDto}, helpers::os_str_to_str, scorer::score};
+use crate::{
+    dto::{ProblemDto, SolutionDto, SolutionMetaDto},
+    helpers::os_str_to_str,
+    scorer::score,
+};
 
 pub struct Problem {
     pub id: String,
     pub data: ProblemDto,
 }
 
-
 impl Problem {
-    pub fn load(problem_path: &PathBuf) -> std::io::Result<Self> {
+    pub fn load(problem_path: &Path) -> std::io::Result<Self> {
         let id = os_str_to_str(problem_path.file_stem());
         let file = File::open(problem_path)?;
         let reader = BufReader::new(file);
@@ -30,12 +33,10 @@ impl Problem {
 
 pub struct Score(pub f64);
 
-
 pub struct Solution {
     pub score: Score,
     pub data: SolutionDto,
 }
-
 
 impl Solution {
     pub fn load(dir: &PathBuf, problem: &Problem) -> std::io::Result<(Self, SolutionMetaDto)> {
@@ -85,7 +86,6 @@ impl Solution {
     }
 }
 
-
 pub trait Solver: DynClone + Sync + Send {
     fn name(&self) -> &str;
     // TODO: Add the proper types for the contest problem
@@ -93,7 +93,10 @@ pub trait Solver: DynClone + Sync + Send {
 
     fn solve(&self, problem: &Problem) -> Solution {
         let solution = self.solve_core(problem);
-        Solution { score: score(&problem.data, &solution), data: solution }
+        Solution {
+            score: score(&problem.data, &solution),
+            data: solution,
+        }
     }
 }
 
