@@ -1,11 +1,14 @@
 use raylib::prelude::*;
 
-use crate::solvers::Problem;
+use crate::solvers::{create_solver, Problem};
 
-pub fn gui_main(problem_path: &std::path::Path) {
+pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
     dbg!(problem_path);
     let problem = Problem::load(problem_path).expect("Failed to read the problem file");
     let data = &problem.data;
+
+    let mut solver = create_solver(solver_name);
+    solver.initialize(&problem);
 
     const WIDTH: i32 = 800;
     const HEIGHT: i32 = 800;
@@ -28,12 +31,27 @@ pub fn gui_main(problem_path: &std::path::Path) {
     let ratio = ratio_x.min(ratio_y);
     dbg!(ratio);
 
+    let mut solution = None;
+    let mut done = false;
+
     while !rl.window_should_close() {
         // ===== HIT TEST =====
         // TODO
 
         // ===== INTERACTION =====
-        // TODO
+        match rl.get_key_pressed() {
+            Some(k) => match k {
+                KeyboardKey::KEY_SPACE => {
+                    if !done {
+                        let (s, d) = solver.solve_step();
+                        solution = Some(s);
+                        done = d;
+                    }
+                }
+                _ => {}
+            },
+            None => {}
+        }
 
         // ===== DRAWING =====
         let mut d = rl.begin_drawing(&thread);
@@ -59,9 +77,20 @@ pub fn gui_main(problem_path: &std::path::Path) {
             d.draw_circle(
                 (attendee.x * ratio) as i32,
                 (attendee.y * ratio) as i32,
-                5.0 * ratio,
+                2.5 * ratio,
                 Color::BROWN,
             );
+        }
+
+        if let Some(solution) = solution.as_ref() {
+            for p in &solution.placements {
+                d.draw_circle(
+                    (p.x * ratio) as i32,
+                    (p.y * ratio) as i32,
+                    5.0 * ratio,
+                    Color::BLUE,
+                );
+            }
         }
     }
 }
