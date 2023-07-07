@@ -1,8 +1,70 @@
 use crate::{
-    dto::{ProblemDto, SolutionDto},
+    dto::{Attendee, Placement, ProblemDto, SolutionDto},
     solvers::Score,
 };
 
+fn calculate_distance(attendee: &Attendee, placement: &Placement) -> f32 {
+    let x = attendee.x - placement.x;
+    let y = attendee.y - placement.y;
+
+    (x * x + y * y).sqrt()
+}
+
+fn calculate_impact(attendee: &Attendee, musician: i32, distance: f32) -> f64 {
+    1000000 as f64 * attendee.tastes[musician as usize] as f64 / (distance * distance) as f64
+}
+
+fn calculate_attendee_happiness(
+    attendee: &Attendee,
+    musicians: &[i32],
+    placements: &[Placement],
+) -> f64 {
+    let mut happiness = 0.0;
+
+    for musician in musicians {
+        let distance = calculate_distance(attendee, &placements[*musician as usize]);
+        happiness += calculate_impact(attendee, *musician, distance);
+    }
+
+    happiness
+}
+
+fn is_sound_blocked(k: &Placement, k_1: &Placement, attendee: &Attendee) -> bool {
+    let r: f32 = 5.0;
+
+    // Step 1: Find the equation of the line: y = mx + c
+    let m = (attendee.y - k.y) / (attendee.x - k.x);
+    let c = k.y - m * k.x;
+
+    // Step 2: Substitute y in the equation of the circle and get a quadratic equation: Ax^2 + Bx + C = 0
+    let a = 1.0 + m.powi(2);
+    let b = 2.0 * m * c - 2.0 * k_1.x - 2.0 * k_1.y * m;
+    let cc = k_1.x.powi(2) + k_1.y.powi(2) + c.powi(2) - r.powi(2) - 2.0 * c * k_1.y;
+
+    // Step 3: Check if the equation has real roots by computing the discriminant
+    let discriminant = b.powi(2) - 4.0 * a * cc;
+
+    // If discriminant < 0, no real roots, so the line doesn't intersect the circle
+    if discriminant < 0.0 {
+        return false;
+    }
+
+    // Otherwise, compute the two intersection points and check if they lie within the segment
+    let t1 = (-b - discriminant.sqrt()) / (2.0 * a);
+    let t2 = (-b + discriminant.sqrt()) / (2.0 * a);
+
+    let x_min = if k.x <= attendee.x { k.x } else { attendee.x };
+    let x_max = if k.x >= attendee.x { k.x } else { attendee.x };
+
+    (x_min <= t1 && t1 <= x_max) || (x_min <= t2 && t2 <= x_max)
+}
+
 pub fn score(problem: &ProblemDto, solution: &SolutionDto) -> Score {
-    Score(0.0)
+    let mut score = 0.0;
+
+    for attendee in &problem.attendees {
+        score += calculate_attendee_happiness(attendee, &problem.musicians, &solution.placements);
+    }
+
+    Score(score)
 }
