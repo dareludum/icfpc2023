@@ -33,17 +33,17 @@ pub struct Placement {
 }
 
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
-pub struct SolvedSolutionDto {
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub struct SolutionMetaDto {
     pub solver_name: String,
-    pub score: u64,
+    pub score: f64,
 }
 
-impl SolvedSolutionDto {
+impl SolutionMetaDto {
     pub fn not_solved() -> Self {
-        SolvedSolutionDto {
+        SolutionMetaDto {
             solver_name: "err_not_solved".to_string(),
-            score: 0,
+            score: 0.0,
         }
     }
 }

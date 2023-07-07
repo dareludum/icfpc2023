@@ -1,3 +1,5 @@
+use crate::dto::SolutionDto;
+
 use super::{Problem, Solver};
 
 #[derive(Clone)]
@@ -8,7 +10,9 @@ impl Solver for NoOp {
         "no_op"
     }
 
-    fn solve_core(&self, _problem: &Problem) -> () {
-        ()
+    fn solve_core(&self, _problem: &Problem) -> SolutionDto {
+        SolutionDto {
+            placements: vec![],
+        }
     }
 }

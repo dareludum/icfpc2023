@@ -6,7 +6,7 @@ use std::io::BufReader;
 
 use dyn_clone::DynClone;
 
-use crate::{dto::{SolvedSolutionDto, ProblemDto}, helpers::os_str_to_str};
+use crate::{dto::{SolutionMetaDto, ProblemDto, SolutionDto}, helpers::os_str_to_str, scorer::score};
 
 pub struct Problem {
     pub id: String,
@@ -28,26 +28,38 @@ impl Problem {
     }
 }
 
-pub struct Score(u64);
+pub struct Score(pub f64);
 
 
 pub struct Solution {
     pub score: Score,
+    pub data: SolutionDto,
 }
 
 
 impl Solution {
-    pub fn load(dir: &PathBuf, problem: &Problem) -> std::io::Result<(Self, SolvedSolutionDto)> {
+    pub fn load(dir: &PathBuf, problem: &Problem) -> std::io::Result<(Self, SolutionMetaDto)> {
         let problem_base = dir.join(&problem.id);
-        let meta_path = problem_base.with_file_name(format!("{}_meta.json", problem.id));
 
-        // TODO: Add any other solution loading here
+        // load the solution itself
+        let data: SolutionDto = {
+            let path = problem_base.with_file_name(format!("{}.json", problem.id));
+            let file = File::open(path)?;
+            let reader = BufReader::new(file);
+            serde_json::from_reader(reader)?
+        };
 
-        let current_best_json: String = std::fs::read_to_string(meta_path)?.into();
-        let metadata: SolvedSolutionDto =
-            serde_json::from_str(&current_best_json).expect("Deserialization error");
+        // load solution metadata
+        let metadata: SolutionMetaDto = {
+            let path = problem_base.with_file_name(format!("{}_meta.json", problem.id));
+            let file = File::open(path)?;
+            let reader = BufReader::new(file);
+            serde_json::from_reader(reader)?
+        };
+
         let solution = Solution {
             score: Score(metadata.score),
+            data,
         };
         Ok((solution, metadata))
     }
@@ -57,15 +69,15 @@ impl Solution {
         solver_name: String,
         problem: &Problem,
         dir: &PathBuf,
-    ) -> std::io::Result<SolvedSolutionDto> {
+    ) -> std::io::Result<SolutionMetaDto> {
         let problem_base = dir.join(&problem.id);
         let meta_path = problem_base.with_file_name(format!("{}_meta.json", problem.id));
 
         // TODO: Add any other solution saving here
 
-        let solution_meta = SolvedSolutionDto {
+        let solution_meta = SolutionMetaDto {
             solver_name: solver_name,
-            score: 0,
+            score: 0.0,
         };
         let solution_meta_json = serde_json::to_string_pretty(&solution_meta)?;
         std::fs::write(meta_path, solution_meta_json)?;
@@ -73,17 +85,15 @@ impl Solution {
     }
 }
 
+
 pub trait Solver: DynClone + Sync + Send {
     fn name(&self) -> &str;
     // TODO: Add the proper types for the contest problem
-    fn solve_core(&self, problem: &Problem) -> ();
+    fn solve_core(&self, problem: &Problem) -> SolutionDto;
 
     fn solve(&self, problem: &Problem) -> Solution {
-        let _result = self.solve_core(problem);
-
-        // TODO: Process the result
-
-        Solution { score: Score(0) }
+        let solution = self.solve_core(problem);
+        Solution { score: score(&problem.data, &solution), data: solution }
     }
 }
 
