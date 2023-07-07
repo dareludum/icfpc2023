@@ -100,7 +100,6 @@ pub fn score(problem: &ProblemDto, solution: &SolutionDto) -> Score {
 mod tests {
     use super::*;
     use crate::dto::{Attendee, Placement};
-    use crate::solvers::Score;
 
     #[test]
     fn test_calculate_attendee_happiness_no_blocked() {
@@ -108,12 +107,12 @@ mod tests {
             Attendee {
                 x: 1.0,
                 y: 1.0,
-                tastes: vec![100, 200, 300],
+                tastes: vec![100.0, 200.0, 300.0],
             },
             Attendee {
                 x: 2.0,
                 y: 2.0,
-                tastes: vec![150, 250, 350],
+                tastes: vec![150.0, 250.0, 350.0],
             },
         ];
 
@@ -136,12 +135,12 @@ mod tests {
             Attendee {
                 x: 1.0,
                 y: 1.0,
-                tastes: vec![100, 200, 300],
+                tastes: vec![100.0, 200.0, 300.0],
             },
             Attendee {
                 x: 2.0,
                 y: 2.0,
-                tastes: vec![150, 250, 350],
+                tastes: vec![150.0, 250.0, 350.0],
             },
         ];
 
@@ -164,12 +163,12 @@ mod tests {
             Attendee {
                 x: 1.0,
                 y: 1.0,
-                tastes: vec![100, 200, 300],
+                tastes: vec![100.0, 200.0, 300.0],
             },
             Attendee {
                 x: 2.0,
                 y: 2.0,
-                tastes: vec![150, 250, 350],
+                tastes: vec![150.0, 250.0, 350.0],
             },
         ];
 
