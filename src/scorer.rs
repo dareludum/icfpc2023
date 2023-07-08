@@ -21,17 +21,27 @@ fn calculate_impact(attendee: &Attendee, instrument: &Instrument, placement: &Po
     impact.ceil() as i64
 }
 
+fn calculate_closeness_factor(placement: Point2D, same_instrument_placements: &[Point2D]) -> f64 {
+    let mut factor = 0.0f64;
+
+    for other_placement in same_instrument_placements {
+        factor += 1.0
+            / placement
+                .as_vec()
+                .metric_distance(&other_placement.as_vec()) as f64;
+    }
+
+    1.0 + factor
+}
+
 fn calculate_attendee_happiness(
     attendee: &Attendee,
     musicians: &[Instrument],
     placements: &[Point2D],
 ) -> i64 {
     let mut happiness = 0;
-    // debug!("{:?}", attendee);
 
     'hap_loop: for i in 0..musicians.len() {
-        // debug!("musician {:?} instrument {:?}", placements[i], musicians[i]);
-
         for other_i in 0..musicians.len() {
             if other_i == i {
                 continue;
@@ -44,6 +54,40 @@ fn calculate_attendee_happiness(
 
         let impact = calculate_impact(attendee, &musicians[i], &placements[i]);
         happiness += impact;
+    }
+
+    happiness
+}
+
+fn calculate_attendee_happiness_playing_together(
+    attendee: &Attendee,
+    musicians: &[Instrument],
+    placements: &[Point2D],
+) -> i64 {
+    let mut happiness = 0;
+
+    'hap_loop: for i in 0..musicians.len() {
+        for other_i in 0..musicians.len() {
+            if other_i == i {
+                continue;
+            }
+
+            if is_sound_blocked_2(&placements[i], &placements[other_i], attendee) {
+                continue 'hap_loop;
+            }
+        }
+
+        let same_instrument_placements = musicians
+            .iter()
+            .enumerate()
+            .filter(|(j, instrument)| *j != i && **instrument == musicians[i])
+            .map(|(i, _)| placements[i])
+            .collect::<Vec<_>>();
+
+        let impact = calculate_impact(attendee, &musicians[i], &placements[i]);
+        let closeness_factor =
+            calculate_closeness_factor(placements[i], &same_instrument_placements);
+        happiness += (closeness_factor * impact as f64).ceil() as i64;
     }
 
     happiness
