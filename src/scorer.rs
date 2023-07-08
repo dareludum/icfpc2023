@@ -29,10 +29,7 @@ fn calculate_closeness_factor(placement: Point2D, same_instrument_placements: &[
             continue;
         }
 
-        factor += 1.0
-            / placement
-                .as_vec()
-                .metric_distance(&other_placement.as_vec()) as f64;
+        factor += 1.0 / (distance2(&placement, other_placement).sqrt() as f64);
     }
 
     1.0 + factor
