@@ -1,4 +1,4 @@
-use std::{fs::File, io::BufReader, path::Path};
+use std::{fs::File, hash::Hash, hash::Hasher, io::BufReader, path::Path};
 
 use nalgebra::Vector2;
 use serde::{Deserialize, Serialize};
@@ -73,6 +73,14 @@ impl Coords2D for Point2D {
 
     fn y(&self) -> f32 {
         self.y
+    }
+}
+
+impl Eq for Point2D {}
+
+impl Hash for Point2D {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        (self.x as i32, self.y as i32).hash(state);
     }
 }
 
