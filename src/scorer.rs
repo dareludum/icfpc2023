@@ -178,13 +178,13 @@ pub fn score_instrument(
 }
 
 pub fn score(problem: &ProblemDto, placements: &[Point2D]) -> Score {
-    let mut score = 0;
-
-    for attendee in &problem.attendees {
-        score += calculate_attendee_happiness(attendee, &problem.musicians, placements);
-    }
-
-    Score(score)
+    Score(
+        problem
+            .attendees
+            .par_iter()
+            .map(|attendee| calculate_attendee_happiness(attendee, &problem.musicians, placements))
+            .sum(),
+    )
 }
 
 #[derive(Clone)]
