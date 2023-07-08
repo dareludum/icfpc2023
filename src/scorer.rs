@@ -85,10 +85,15 @@ fn calculate_attendee_happiness(
 }
 
 fn is_sound_blocked_2(k: &Point2D, k_1: &Point2D, radius: f32, attendee: &Attendee) -> bool {
-    let circle_center = k_1;
-    let line_start = k;
-    let line_end = attendee;
+    line_circle_intersection_2(attendee.into(), k.into(), k_1.into(), radius)
+}
 
+pub fn line_circle_intersection_2(
+    line_start: Vector2<f32>,
+    line_end: Vector2<f32>,
+    circle_center: Vector2<f32>,
+    radius: f32,
+) -> bool {
     // Create vector from the start of the line to the center of the circle
     let start_to_center = Point2D {
         x: circle_center.x - line_start.x,
@@ -139,7 +144,7 @@ fn is_sound_blocked(k: &Point2D, k_1: &Point2D, attendee: &Attendee) -> bool {
     line_circle_intersection(attendee.into(), k.into(), k_1.into(), 5.0)
 }
 
-fn line_circle_intersection(
+pub fn line_circle_intersection(
     a: Vector2<f32>,
     b: Vector2<f32>,
     circle_center: Vector2<f32>,

@@ -13,11 +13,13 @@ use solvers::Problem;
 use solvers::SOLVERS;
 
 mod cmd;
+mod collider;
 mod common;
 mod dto;
 mod gui;
 mod helpers;
 mod kdtree;
+mod new_scorer;
 mod scorer;
 mod solvers;
 

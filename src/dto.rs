@@ -60,6 +60,18 @@ impl Point2D {
     }
 }
 
+impl PillarDto {
+    pub fn as_vec(&self) -> Vector2<f32> {
+        Vector2::new(self.center.0, self.center.1)
+    }
+}
+
+impl Attendee {
+    pub fn as_vec(&self) -> Vector2<f32> {
+        Vector2::new(self.x, self.y)
+    }
+}
+
 impl From<&Point2D> for Vector2<f32> {
     fn from(val: &Point2D) -> Self {
         Vector2::new(val.x, val.y)
