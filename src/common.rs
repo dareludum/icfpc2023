@@ -2,7 +2,10 @@ use std::collections::HashSet;
 
 use log::debug;
 
-use crate::dto::{Point2D, ProblemDto};
+use crate::{
+    dto::{Point2D, ProblemDto},
+    geometry::{distance2, Coords2D},
+};
 
 #[derive(Clone, Copy)]
 pub struct Position {
@@ -99,17 +102,6 @@ impl Grid {
             }
         }
     }
-}
-
-pub trait Coords2D {
-    fn x(&self) -> f32;
-    fn y(&self) -> f32;
-}
-
-pub fn distance2(c0: &impl Coords2D, c1: &impl Coords2D) -> f32 {
-    let x = c0.x() - c1.x();
-    let y = c0.y() - c1.y();
-    x * x + y * y
 }
 
 pub fn calculate_invalid_positions(positions: &[Point2D]) -> HashSet<usize> {

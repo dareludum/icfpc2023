@@ -7,8 +7,9 @@ use nalgebra::Vector2;
 use rayon::prelude::*;
 
 use crate::{
-    common::{distance2, Grid},
+    common::Grid,
     dto::{Attendee, Instrument, PillarDto, Point2D, ProblemDto},
+    geometry::distance2,
     solvers::Score,
 };
 

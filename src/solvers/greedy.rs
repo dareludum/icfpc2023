@@ -4,8 +4,9 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use rayon::prelude::*;
 
 use crate::{
-    common::{distance2, Grid},
+    common::Grid,
     dto::{Instrument, Point2D, ProblemDto, SolutionDto},
+    geometry::distance2,
     scorer::{ImpactMap, PillarBlockageMap},
 };
 

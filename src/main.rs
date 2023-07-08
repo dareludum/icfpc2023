@@ -17,6 +17,7 @@ mod cmd;
 mod collider;
 mod common;
 mod dto;
+mod geometry;
 mod gui;
 mod helpers;
 mod kdtree;
