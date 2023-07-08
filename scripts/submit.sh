@@ -51,7 +51,7 @@ submit_solution() {
 
     local score="$(jq .score < "$meta_path")"
     local submission_id="$(submission_payload "$problem_id" < "$solution_path" | post_submission | tr -d '"')"
-    printf "Submission id: '%s'\n" "$submission_id"
+    printf "Problem %s submission id: '%s'\n" "$problem_id" "$submission_id"
 
     if [ -n "$NOWAIT" ]; then
         return
