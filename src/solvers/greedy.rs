@@ -6,7 +6,7 @@ use rayon::prelude::*;
 use crate::{
     common::Grid,
     dto::{Instrument, Point2D, ProblemDto, SolutionDto},
-    scorer::ImpactMap,
+    scorer::{ImpactMap, PillarBlockageMap},
 };
 
 use super::{Problem, Solver};
@@ -18,6 +18,7 @@ pub struct Greedy {
     placements: Vec<Point2D>,
     remaining_musicians: HashSet<usize>,
     impact_maps: HashMap<Instrument, ImpactMap>,
+    pillar_blockage_map: PillarBlockageMap,
 }
 
 impl Solver for Greedy {
@@ -48,14 +49,26 @@ impl Solver for Greedy {
             });
         }
 
-        // Compute impact maps
+        debug!("greedy: computing pillar blockage map");
+        self.pillar_blockage_map =
+            PillarBlockageMap::new(&self.grid, &self.problem.pillars, &self.problem.attendees);
+        debug!(
+            "greedy: {} blocked pairs",
+            self.pillar_blockage_map.blocked_positions.len()
+        );
+
         debug!("greedy: computing impact maps");
         self.impact_maps = (0..=max_instrument)
             .map(Instrument)
             .collect::<Vec<_>>()
             .par_iter()
             .map(|i| {
-                let impact_map = ImpactMap::new(i, &self.problem.attendees, &self.grid);
+                let impact_map = ImpactMap::new(
+                    i,
+                    &self.problem.attendees,
+                    &self.grid,
+                    &self.pillar_blockage_map,
+                );
                 (*i, impact_map)
             })
             .collect();
@@ -130,6 +143,7 @@ impl Solver for Greedy {
                 &self.grid,
                 &new_taken_positions,
                 &blocked_positions,
+                &self.pillar_blockage_map,
             );
         });
 

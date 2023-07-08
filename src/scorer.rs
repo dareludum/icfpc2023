@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, iter::repeat};
 
 use nalgebra::Vector2;
 use rayon::prelude::*;
@@ -199,20 +199,6 @@ mod tests {
     }
 }
 
-pub fn score_instrument(
-    attendees: &[Attendee],
-    placement: &Point2D,
-    instrument: &Instrument,
-) -> Score {
-    let mut score = 0;
-
-    for attendee in attendees {
-        score += calculate_impact(attendee, instrument, placement);
-    }
-
-    Score(score)
-}
-
 pub fn score(problem: &ProblemDto, placements: &[Point2D]) -> Score {
     Score(
         problem
@@ -239,10 +225,16 @@ pub struct ImpactMap {
 }
 
 impl ImpactMap {
-    pub fn new(instrument: &Instrument, attendees: &[Attendee], grid: &Grid) -> Self {
+    pub fn new(
+        instrument: &Instrument,
+        attendees: &[Attendee],
+        grid: &Grid,
+        pillar_blockage: &PillarBlockageMap,
+    ) -> Self {
         let mut scores = vec![];
-        for pos in &grid.positions {
-            let score = score_instrument(attendees, &pos.p, instrument);
+        for (idx_pos, pos) in grid.positions.iter().enumerate() {
+            let score =
+                Self::score_instrument(attendees, idx_pos, &pos.p, instrument, pillar_blockage);
             scores.push(score);
         }
 
@@ -253,6 +245,24 @@ impl ImpactMap {
             best_score_pos_idx,
             best_score,
         }
+    }
+
+    fn score_instrument(
+        attendees: &[Attendee],
+        idx_pos: usize,
+        placement: &Point2D,
+        instrument: &Instrument,
+        pillar_blockage: &PillarBlockageMap,
+    ) -> Score {
+        let mut score = 0;
+
+        for (idx, attendee) in attendees.iter().enumerate() {
+            if !pillar_blockage.is_sound_blocked(idx_pos, idx) {
+                score += calculate_impact(attendee, instrument, placement);
+            }
+        }
+
+        Score(score)
     }
 
     fn get_best_score(scores: &[Score], grid: &Grid) -> (usize, Score) {
@@ -295,9 +305,13 @@ impl ImpactMap {
         grid: &Grid,
         new_taken_positions: &HashSet<usize>,
         blocked_positions: &[(usize, usize)],
+        pillar_blockage: &PillarBlockageMap,
     ) {
         let mut needs_best_score_update = new_taken_positions.contains(&self.best_score_pos_idx);
         for (idx, idx_attendee) in blocked_positions {
+            if pillar_blockage.is_sound_blocked(*idx, *idx_attendee) {
+                continue;
+            }
             let pos = &grid.positions[*idx];
             let attendee = &attendees[*idx_attendee];
             self.scores[*idx].0 -= calculate_impact(attendee, instrument, &pos.p);
@@ -310,6 +324,39 @@ impl ImpactMap {
             self.best_score_pos_idx = best_score_pos_idx;
             self.best_score = best_score;
         }
+    }
+}
+
+#[derive(Default, Clone)]
+pub struct PillarBlockageMap {
+    pub blocked_positions: HashSet<(usize, usize)>,
+}
+
+impl PillarBlockageMap {
+    pub fn new(grid: &Grid, pillars: &[PillarDto], attendees: &[Attendee]) -> Self {
+        let blocked_positions = (0..grid.positions.len())
+            .flat_map(|idx_pos| repeat(idx_pos).zip(0..attendees.len()))
+            .par_bridge()
+            .filter(|(idx_pos, idx_attendee)| {
+                pillars.iter().any(|p| {
+                    is_sound_blocked_2(
+                        &grid.positions[*idx_pos].p,
+                        &Point2D {
+                            x: p.center.0,
+                            y: p.center.1,
+                        },
+                        p.radius,
+                        &attendees[*idx_attendee],
+                    )
+                })
+            })
+            .collect();
+
+        PillarBlockageMap { blocked_positions }
+    }
+
+    pub fn is_sound_blocked(&self, idx_pos: usize, idx_attendee: usize) -> bool {
+        self.blocked_positions.contains(&(idx_pos, idx_attendee))
     }
 }
 
