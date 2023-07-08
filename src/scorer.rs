@@ -5,7 +5,7 @@ use rayon::prelude::*;
 
 use crate::{
     common::Grid,
-    dto::{Attendee, Instrument, Point2D, ProblemDto},
+    dto::{Attendee, Instrument, PillarDto, Point2D, ProblemDto},
     solvers::Score,
 };
 
@@ -38,6 +38,8 @@ fn calculate_attendee_happiness(
     attendee: &Attendee,
     musicians: &[Instrument],
     placements: &[Point2D],
+    pillars: &[PillarDto],
+    consider_closeness: bool,
 ) -> i64 {
     let mut happiness = 0;
 
@@ -47,32 +49,18 @@ fn calculate_attendee_happiness(
                 continue;
             }
 
-            if is_sound_blocked_2(&placements[i], &placements[other_i], attendee) {
+            if is_sound_blocked_2(&placements[i], &placements[other_i], 5.0, attendee) {
                 continue 'hap_loop;
             }
         }
 
-        let impact = calculate_impact(attendee, &musicians[i], &placements[i]);
-        happiness += impact;
-    }
+        for pillar in pillars {
+            let pillar_center = Point2D {
+                x: pillar.center.0,
+                y: pillar.center.1,
+            };
 
-    happiness
-}
-
-fn calculate_attendee_happiness_playing_together(
-    attendee: &Attendee,
-    musicians: &[Instrument],
-    placements: &[Point2D],
-) -> i64 {
-    let mut happiness = 0;
-
-    'hap_loop: for i in 0..musicians.len() {
-        for other_i in 0..musicians.len() {
-            if other_i == i {
-                continue;
-            }
-
-            if is_sound_blocked_2(&placements[i], &placements[other_i], attendee) {
+            if is_sound_blocked_2(&placements[i], &pillar_center, pillar.radius, attendee) {
                 continue 'hap_loop;
             }
         }
@@ -85,16 +73,19 @@ fn calculate_attendee_happiness_playing_together(
             .collect::<Vec<_>>();
 
         let impact = calculate_impact(attendee, &musicians[i], &placements[i]);
-        let closeness_factor =
-            calculate_closeness_factor(placements[i], &same_instrument_placements);
-        happiness += (closeness_factor * impact as f64).ceil() as i64;
+        if consider_closeness {
+            let closeness_factor =
+                calculate_closeness_factor(placements[i], &same_instrument_placements);
+            happiness += (closeness_factor * impact as f64).ceil() as i64;
+        } else {
+            happiness += impact;
+        }
     }
 
     happiness
 }
 
-fn is_sound_blocked_2(k: &Point2D, k_1: &Point2D, attendee: &Attendee) -> bool {
-    let r: f32 = 5.0;
+fn is_sound_blocked_2(k: &Point2D, k_1: &Point2D, radius: f32, attendee: &Attendee) -> bool {
     let circle_center = k_1;
     let line_start = k;
     let line_end = attendee;
@@ -142,7 +133,7 @@ fn is_sound_blocked_2(k: &Point2D, k_1: &Point2D, attendee: &Attendee) -> bool {
         closest_to_center.x * closest_to_center.x + closest_to_center.y * closest_to_center.y;
 
     // If the squared length is less than r squared, the line intersects the circle
-    closest_to_center_len_sq <= r * r
+    closest_to_center_len_sq <= radius * radius
 }
 
 fn is_sound_blocked(k: &Point2D, k_1: &Point2D, attendee: &Attendee) -> bool {
@@ -227,7 +218,15 @@ pub fn score(problem: &ProblemDto, placements: &[Point2D]) -> Score {
         problem
             .attendees
             .par_iter()
-            .map(|attendee| calculate_attendee_happiness(attendee, &problem.musicians, placements))
+            .map(|attendee| {
+                calculate_attendee_happiness(
+                    attendee,
+                    &problem.musicians,
+                    placements,
+                    &problem.pillars,
+                    false, //TODO
+                )
+            })
             .sum(),
     )
 }
