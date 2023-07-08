@@ -1,6 +1,7 @@
 mod chain;
 mod expand;
 mod greedy;
+mod genetic;
 mod shake;
 
 use std::fs::File;
@@ -21,6 +22,7 @@ use crate::{
 use self::chain::Chain;
 use self::expand::Expand;
 use self::greedy::Greedy;
+use self::genetic::Genetic;
 use self::shake::Shake;
 
 #[derive(Default, Clone)]
@@ -135,7 +137,7 @@ pub trait Solver: DynClone + Sync + Send {
 
 dyn_clone::clone_trait_object!(Solver);
 
-pub const SOLVERS: &[&str] = &["expand", "greedy"];
+pub const SOLVERS: &[&str] = &["expand", "greedy", "genetic"];
 
 pub fn create_solver(solver_name: &str) -> Box<dyn Solver> {
     if solver_name.contains('+') {
@@ -151,6 +153,7 @@ fn create_individual_solver(solver_name: &str) -> Box<dyn Solver> {
     match solver_name {
         "expand" => Box::<Expand>::default(),
         "greedy" => Box::<Greedy>::default(),
+        "genetic" => Box::<Genetic>::default(),
         "shake" => Box::<Shake>::default(),
         n => panic!("Unknown solver `{}`", n),
     }
