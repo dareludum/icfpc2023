@@ -159,11 +159,24 @@ impl Solver for Expand {
 
         loop {
             if rand::random::<u8>() % 10 > 3 {
+                // Try expand - move musicians to new positions
+
                 let group_size = rand::random::<usize>() % 3 + 1;
 
                 let mut placement_indices = (0..self.placements.len()).collect::<Vec<_>>();
                 let (placement_indices_slice, _) =
                     placement_indices.partial_shuffle(&mut rand::thread_rng(), group_size);
+
+                // Take out the musicians
+                let old_placements = self.placements.clone();
+                for idx in placement_indices_slice.iter() {
+                    self.placements[*idx] = Point2D {
+                        x: f32::NAN,
+                        y: f32::NAN,
+                    };
+                }
+
+                self.grid.recalculate_taken(&self.placements);
 
                 let mut not_taken_positions = self
                     .grid
@@ -174,7 +187,7 @@ impl Solver for Expand {
                 let (not_taken_slice, _) =
                     not_taken_positions.partial_shuffle(&mut rand::thread_rng(), group_size);
 
-                let mut new_placements = self.placements.clone();
+                let mut new_placements = old_placements.clone();
                 for (idx, pos) in placement_indices_slice.iter().zip(not_taken_slice.iter()) {
                     new_placements[*idx] = pos.p;
                 }
@@ -186,25 +199,18 @@ impl Solver for Expand {
                     self.placements = new_placements;
                     self.curr_score = new_score;
 
-                    for pos in &mut self.grid.positions {
-                        pos.taken = false;
-                    }
-
-                    for placement in &self.placements {
-                        for pos in self.grid.positions.iter_mut() {
-                            let x = pos.p.x - placement.x;
-                            let y = pos.p.y - placement.y;
-                            let dist = (x * x + y * y).sqrt();
-                            if dist <= 10.0 {
-                                pos.taken = true;
-                            }
-                        }
-                    }
+                    self.grid.recalculate_taken(&self.placements);
 
                     debug!("expand : won (group size {})", group_size);
                     break;
+                } else {
+                    self.placements = old_placements;
+
+                    self.grid.recalculate_taken(&self.placements);
                 }
             } else {
+                // Try shuffle - swap musician positions
+
                 let group_size = rand::random::<usize>() % 3 + 1;
 
                 let mut placement_indices = (0..self.placements.len()).collect::<Vec<_>>();
