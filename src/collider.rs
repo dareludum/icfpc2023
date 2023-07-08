@@ -81,10 +81,10 @@ impl<'sol, 'pro> Collider<'sol, 'pro> {
                     false
                 } else {
                     let (center, radius) = self.get_circle(*obstacle);
-                    crate::scorer::line_circle_intersection_2(
-                        attendee_location,
-                        musician_location,
-                        center,
+                    crate::geometry::line_circle_intersection(
+                        &attendee_location,
+                        &musician_location,
+                        &center,
                         radius,
                     )
                 }
