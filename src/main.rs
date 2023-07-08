@@ -101,7 +101,7 @@ fn main() -> std::io::Result<()> {
         Some(Commands::Score { problem, solution }) => {
             let problem = Problem::load(Path::new(problem))?;
             let solution = SolutionDto::load(Path::new(solution))?;
-            let score = scorer::score(&problem.data, &solution);
+            let score = scorer::score(&problem.data, &solution.placements);
             println!("score: {}", score.0);
             Ok(())
         }
