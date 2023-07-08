@@ -5,7 +5,7 @@ use raylib::prelude::*;
 
 use crate::{
     common::{calculate_invalid_positions, Grid},
-    dto::{Attendee, Instrument},
+    dto::{Attendee, Instrument, SolutionDto},
     geometry::{distance2, Coords2D},
     scorer::ImpactMap,
     solvers::{create_solver, Problem, Solution, Solver},
@@ -109,7 +109,7 @@ impl ColorGradient {
 fn save_solution(solution: &Solution, solver: &Box<dyn Solver>, problem: &Problem) {
     solution
         .save(
-            solver.name().to_owned(),
+            solver.name(),
             problem,
             &PathBuf::from("./solutions/current/gui"),
         )
@@ -124,7 +124,7 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
     logging::set_trace_log(TraceLogLevel::LOG_WARNING);
 
     let mut solver = create_solver(solver_name);
-    solver.initialize(&problem);
+    solver.initialize(&problem, SolutionDto::default());
 
     const WIDTH: i32 = 800;
     const HEIGHT: i32 = 800;
@@ -316,7 +316,8 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
 
         // ===== DRAWING =====
 
-        let invalid_musician_positions = calculate_invalid_positions(&solution.data.placements);
+        let invalid_musician_positions =
+            calculate_invalid_positions(&solution.data.placements, &problem.data);
 
         let mut d = rl.begin_drawing(&thread);
         d.clear_background(Color::GRAY);

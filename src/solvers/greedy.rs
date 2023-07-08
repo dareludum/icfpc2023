@@ -23,8 +23,8 @@ pub struct Greedy {
 }
 
 impl Solver for Greedy {
-    fn name(&self) -> &'static str {
-        "greedy"
+    fn name(&self) -> String {
+        "greedy".to_owned()
     }
 
     fn get_impact_map(&self, instrument: &Instrument) -> Option<&ImpactMap> {
@@ -35,7 +35,12 @@ impl Solver for Greedy {
         Some(&self.grid)
     }
 
-    fn initialize(&mut self, problem: &Problem) {
+    fn initialize(&mut self, problem: &Problem, solution: SolutionDto) {
+        assert!(
+            solution.placements.is_empty(),
+            "greedy: must be the start of the chain"
+        );
+
         self.problem = problem.data.clone();
 
         self.grid = Grid::new(&self.problem);

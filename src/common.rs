@@ -104,17 +104,28 @@ impl Grid {
     }
 }
 
-pub fn calculate_invalid_positions(positions: &[Point2D]) -> HashSet<usize> {
+pub fn calculate_invalid_positions(positions: &[Point2D], problem: &ProblemDto) -> HashSet<usize> {
+    let min_x = problem.stage_bottom_left.x() + 10.0;
+    let min_y = problem.stage_bottom_left.y() + 10.0;
+    let max_x = problem.stage_bottom_left.x() + problem.stage_width - 10.0;
+    let max_y = problem.stage_bottom_left.y() + problem.stage_height - 10.0;
+
     let mut result = HashSet::new();
     for i in 0..positions.len() {
-        if positions[i].x.is_nan() {
+        let pos0 = &positions[i];
+        if pos0.x.is_nan() {
             continue;
         }
+        if pos0.x < min_x || pos0.x > max_x || pos0.y < min_y || pos0.y > max_y {
+            result.insert(i);
+        }
+        #[allow(clippy::needless_range_loop)]
         for j in 0..i {
-            if positions[j].x.is_nan() {
+            let pos1 = &positions[j];
+            if pos1.x.is_nan() {
                 continue;
             }
-            if distance2(&positions[i], &positions[j]) < 100.0 {
+            if distance2(pos0, pos1) < 100.0 {
                 result.insert(i);
                 result.insert(j);
             }

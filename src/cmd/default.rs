@@ -20,7 +20,7 @@ fn solve_problem(
     let solvers = solvers.to_owned();
 
     for mut solver in solvers {
-        let full_solver_name = solver.name().to_owned();
+        let full_solver_name = solver.name();
         let cur_solver_dir = &base_solution_dir.join("current").join(&full_solver_name);
         let best_dir = &base_solution_dir.join("best");
         std::fs::create_dir_all(cur_solver_dir)?;
