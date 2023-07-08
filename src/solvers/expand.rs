@@ -78,7 +78,10 @@ impl Solver for Expand {
         // }
 
         let stride = self.grid.positions.len() / self.problem.musicians.len();
-        for idx in (0..self.grid.positions.len()).step_by(stride) {
+        for (idx, _) in (0..self.grid.positions.len())
+            .step_by(stride)
+            .zip(0..self.problem.musicians.len())
+        {
             self.placements.push(self.grid.positions[idx].p);
         }
 
