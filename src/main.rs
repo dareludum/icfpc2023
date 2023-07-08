@@ -94,6 +94,7 @@ fn main() -> std::io::Result<()> {
     let args = Args::parse();
     let solvers = get_solvers(&args);
     let log_level = args.log_level.clone().unwrap_or_else(|| "info".to_string());
+    let gui = bool::from(args.gui);
 
     env_logger::Builder::from_env(Env::default().default_filter_or(log_level)).init();
 
@@ -129,7 +130,7 @@ fn main() -> std::io::Result<()> {
         }
         _ => {
             let problem_paths = get_problem_paths(&args, false)?;
-            default_command(&problem_paths, solvers)
+            default_command(&problem_paths, solvers, gui)
         }
     }
 }
