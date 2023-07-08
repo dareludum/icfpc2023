@@ -4,7 +4,7 @@ use colorgrad::Gradient;
 use raylib::prelude::*;
 
 use crate::{
-    common::Grid,
+    common::{calculate_invalid_positions, Grid},
     dto::{Attendee, Instrument},
     scorer::ImpactMap,
     solvers::{create_solver, Problem, Solution, Solver},
@@ -312,6 +312,8 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
 
         // ===== DRAWING =====
 
+        let invalid_musician_positions = calculate_invalid_positions(&solution.data.placements);
+
         let mut d = rl.begin_drawing(&thread);
         d.clear_background(Color::GRAY);
 
@@ -362,8 +364,8 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
             );
         }
 
-        for p in &solution.data.placements {
-            if !p.x.is_nan() {
+        for (idx, p) in solution.data.placements.iter().enumerate() {
+            if !p.x.is_nan() && !invalid_musician_positions.contains(&idx) {
                 d.draw_circle(
                     transform_x(p.x),
                     transform_y(p.y),
@@ -372,13 +374,27 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
                 );
             }
         }
-        for p in &solution.data.placements {
+        for (idx, p) in solution.data.placements.iter().enumerate() {
+            if !p.x.is_nan() && invalid_musician_positions.contains(&idx) {
+                d.draw_circle(
+                    transform_x(p.x),
+                    transform_y(p.y),
+                    10.0 * zoomed_ratio,
+                    Color::RED,
+                );
+            }
+        }
+        for (idx, p) in solution.data.placements.iter().enumerate() {
             if !p.x.is_nan() {
                 d.draw_circle(
                     transform_x(p.x),
                     transform_y(p.y),
                     5.0 * zoomed_ratio,
-                    Color::BLACK,
+                    if invalid_musician_positions.contains(&idx) {
+                        Color::DARKRED
+                    } else {
+                        Color::BLACK
+                    },
                 );
             }
         }

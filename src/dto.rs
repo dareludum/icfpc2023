@@ -3,6 +3,8 @@ use std::{fs::File, io::BufReader, path::Path};
 use nalgebra::Vector2;
 use serde::{Deserialize, Serialize};
 
+use crate::common::Coords2D;
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Attendee {
     pub x: f32,
@@ -52,6 +54,16 @@ impl SolutionDto {
 pub struct Point2D {
     pub x: f32,
     pub y: f32,
+}
+
+impl Coords2D for Point2D {
+    fn x(&self) -> f32 {
+        self.x
+    }
+
+    fn y(&self) -> f32 {
+        self.y
+    }
 }
 
 impl Point2D {
