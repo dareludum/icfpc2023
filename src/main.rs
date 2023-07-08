@@ -17,8 +17,12 @@ mod common;
 mod dto;
 mod gui;
 mod helpers;
+mod kdtree;
 mod scorer;
 mod solvers;
+
+#[macro_use]
+extern crate enum_map;
 
 fn get_problem_paths(args: &Args, force_batch: bool) -> Result<Vec<PathBuf>, std::io::Error> {
     if !args.problems.is_empty() {
