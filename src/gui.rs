@@ -98,6 +98,8 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
     dbg!(problem_path);
     let problem = Problem::load(problem_path).expect("Failed to read the problem file");
     let data = &problem.data;
+    std::fs::create_dir_all("./solutions/current/gui")
+        .expect("Failed to create the directory ./solutions/current/gui");
 
     let mut solver = create_solver(solver_name);
     solver.initialize(&problem);
