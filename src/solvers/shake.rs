@@ -13,10 +13,11 @@ use super::{Problem, Score, Solver};
 pub struct Shake {
     problem: Problem,
     solution: SolutionDto,
-    prev_score: Score,
+    orig_score: Score,
     curr_score: Score,
     idx: usize,
     idx_change: usize,
+    delta: f32,
     any_improvement_this_cycle: bool,
 }
 
@@ -34,39 +35,39 @@ impl Solver for Shake {
         self.problem = problem.clone();
         self.solution = solution;
         self.curr_score = score(&self.problem.data, &self.solution.placements);
-        self.prev_score = self.curr_score;
+        self.orig_score = self.curr_score;
         self.idx = 0;
         self.idx_change = 0;
+        self.delta = 1.0;
         self.any_improvement_this_cycle = false;
     }
 
     fn solve_step(&mut self) -> (SolutionDto, bool) {
-        const DELTA: f32 = 0.01;
-        const CHANGES: &[(f32, f32)] = &[
-            // N
-            (0.0, DELTA),
-            // S
-            (0.0, -DELTA),
-            // E
-            (DELTA, 0.0),
-            // W
-            (-DELTA, 0.0),
-            // NE
-            (DELTA, DELTA),
-            // SE
-            (DELTA, -DELTA),
-            // NW
-            (-DELTA, DELTA),
-            // SW
-            (-DELTA, -DELTA),
-        ];
-
         loop {
+            let changes: &[(f32, f32)] = &[
+                // N
+                (0.0, self.delta),
+                // S
+                (0.0, -self.delta),
+                // E
+                (self.delta, 0.0),
+                // W
+                (-self.delta, 0.0),
+                // NE
+                (self.delta, self.delta),
+                // SE
+                (self.delta, -self.delta),
+                // NW
+                (-self.delta, self.delta),
+                // SW
+                (-self.delta, -self.delta),
+            ];
+
             for i_pos in self.idx..self.solution.placements.len() {
                 #[allow(clippy::needless_range_loop)]
-                for i_change in self.idx_change..CHANGES.len() {
+                for i_change in self.idx_change..changes.len() {
                     let curr_pos = self.solution.placements[i_pos];
-                    let change = CHANGES[i_change];
+                    let change = changes[i_change];
                     let new_pos = Point2D {
                         x: curr_pos.x() + change.x(),
                         y: curr_pos.y() + change.y(),
@@ -84,6 +85,10 @@ impl Solver for Shake {
                         self.solution.placements[i_pos] = curr_pos;
                         continue;
                     }
+                    debug!(
+                        "shake({}): {} => {}",
+                        self.problem.id, self.orig_score.0, new_score.0
+                    );
                     self.curr_score = new_score;
                     self.idx = i_pos;
                     self.idx_change = i_change;
@@ -95,14 +100,26 @@ impl Solver for Shake {
             if self.any_improvement_this_cycle {
                 debug!(
                     "shake({}): new cycle ({} => {})",
-                    self.problem.id, self.prev_score.0, self.curr_score.0
+                    self.problem.id, self.orig_score.0, self.curr_score.0
                 );
-                self.prev_score = self.curr_score;
                 self.idx = 0;
                 self.idx_change = 0;
                 self.any_improvement_this_cycle = false;
                 continue;
             } else {
+                if self.delta > 0.01 {
+                    let old_delta = self.delta;
+                    self.delta /= 2.0;
+                    if self.delta < 0.01 {
+                        self.delta = 0.01;
+                    }
+                    debug!(
+                        "shake({}): delta {} => {}",
+                        self.problem.id, old_delta, self.delta
+                    );
+                    continue;
+                }
+
                 debug!("shake({}): done", self.problem.id);
                 self.idx = self.solution.placements.len();
                 return (self.solution.clone(), true);
