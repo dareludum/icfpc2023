@@ -243,6 +243,9 @@ pub struct PillarBlockageMap {
 
 impl PillarBlockageMap {
     pub fn new(grid: &Grid, pillars: &[PillarDto], attendees: &[Attendee]) -> Self {
+        if pillars.is_empty() {
+            return PillarBlockageMap::default();
+        }
         let blocked_positions = (0..grid.positions.len())
             .flat_map(|idx_pos| repeat(idx_pos).zip(0..attendees.len()))
             .par_bridge()
