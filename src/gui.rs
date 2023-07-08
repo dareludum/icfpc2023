@@ -372,14 +372,20 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
         // Right side
 
         let lines = &[
-            format!(
-                "Done: {}",
-                if done { "true" } else { "false <press Space>" }
-            ),
+            "Commands:".to_owned(),
+            "  - Pan: Middle mouse drag".to_owned(),
+            "  - Zoom: Mouse wheel".to_owned(),
+            "  - Solve step: Space".to_owned(),
+            "  - Solve (auto): Shift+Space".to_owned(),
+            "  - Calc score: S".to_owned(),
+            "  - Auto calc score: Shift+S".to_owned(),
+            "  - Prev/Next instrument: Q/W".to_owned(),
+            "".to_owned(),
+            format!("Done: {}", if done { "true" } else { "false" }),
             format!(
                 "Current score: {}",
                 if score.is_none() {
-                    "<press [Shift+]S>".to_owned()
+                    "<not calculated>".to_owned()
                 } else {
                     score.unwrap().0.to_string()
                 }
@@ -387,7 +393,7 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
             format!(
                 "Focused instrument: {}",
                 if selected_instrument.is_none() {
-                    "<press Q/W>".to_owned()
+                    "<none>".to_owned()
                 } else {
                     selected_instrument.unwrap().to_string()
                 }
