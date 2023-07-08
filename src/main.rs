@@ -7,6 +7,7 @@ use cmd::stats::*;
 use cmd::Args;
 use cmd::Commands;
 use dto::SolutionDto;
+use env_logger::Env;
 use helpers::*;
 use solvers::Problem;
 use solvers::SOLVERS;
@@ -85,6 +86,9 @@ fn list_current_solvers() -> Vec<String> {
 fn main() -> std::io::Result<()> {
     let args = Args::parse();
     let solvers = get_solvers(&args);
+    let log_level = args.log_level.clone().unwrap_or_else(|| "info".to_string());
+
+    env_logger::Builder::from_env(Env::default().default_filter_or(log_level)).init();
 
     match &args.command {
         Some(Commands::Stats) => {

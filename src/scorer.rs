@@ -27,10 +27,10 @@ fn calculate_attendee_happiness(
     placements: &[Point2D],
 ) -> i64 {
     let mut happiness = 0;
-    // println!("{:?}", attendee);
+    // debug!("{:?}", attendee);
 
     'hap_loop: for i in 0..musicians.len() {
-        // println!("musician {:?} instrument {:?}", placements[i], musicians[i]);
+        // debug!("musician {:?} instrument {:?}", placements[i], musicians[i]);
 
         for other_i in 0..musicians.len() {
             if other_i == i {

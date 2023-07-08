@@ -1,3 +1,4 @@
+use log::debug;
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use rayon::prelude::*;
@@ -48,7 +49,7 @@ impl Solver for Greedy {
         }
 
         // Compute impact maps
-        println!("greedy: computing impact maps");
+        debug!("greedy: computing impact maps");
         self.impact_maps = (0..=max_instrument)
             .map(Instrument)
             .collect::<Vec<_>>()
@@ -59,7 +60,7 @@ impl Solver for Greedy {
             })
             .collect();
 
-        println!("greedy: initialized");
+        debug!("greedy: initialized");
     }
 
     fn solve_step(&mut self) -> (SolutionDto, bool) {
@@ -132,7 +133,7 @@ impl Solver for Greedy {
             );
         });
 
-        println!("greedy: {} musicians left", self.remaining_musicians.len());
+        debug!("greedy: {} musicians left", self.remaining_musicians.len());
 
         (
             SolutionDto {
