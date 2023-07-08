@@ -224,7 +224,7 @@ pub fn score(problem: &ProblemDto, placements: &[Point2D]) -> Score {
                     &problem.musicians,
                     placements,
                     &problem.pillars,
-                    false, //TODO
+                    problem.pillars.len() > 0, // This is because all new tasks have pillars
                 )
             })
             .sum(),
