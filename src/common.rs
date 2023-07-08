@@ -10,6 +10,16 @@ pub struct Position {
     pub taken: bool,
 }
 
+impl Coords2D for Position {
+    fn x(&self) -> f32 {
+        self.p.x
+    }
+
+    fn y(&self) -> f32 {
+        self.p.y
+    }
+}
+
 // Rasterized stage to work with a grid of points instead of an infinite surface
 #[derive(Default, Clone)]
 pub struct Grid {
@@ -96,7 +106,7 @@ pub trait Coords2D {
     fn y(&self) -> f32;
 }
 
-pub fn distance2<C0: Coords2D, C1: Coords2D>(c0: &C0, c1: &C1) -> f32 {
+pub fn distance2(c0: &impl Coords2D, c1: &impl Coords2D) -> f32 {
     let x = c0.x() - c1.x();
     let y = c0.y() - c1.y();
     x * x + y * y

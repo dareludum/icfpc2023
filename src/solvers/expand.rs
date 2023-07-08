@@ -3,7 +3,7 @@ use priority_queue::PriorityQueue;
 use rand::seq::SliceRandom;
 
 use crate::{
-    common::Grid,
+    common::{distance2, Grid},
     dto::{Point2D, ProblemDto, SolutionDto},
 };
 
@@ -42,11 +42,7 @@ impl Solver for Expand {
         //             .problem
         //             .attendees
         //             .iter()
-        //             .map(|a| {
-        //                 let x = pos.p.x - a.x;
-        //                 let y = pos.p.y - a.y;
-        //                 x * x + y * y
-        //             })
+        //             .map(|a| distance2(pos, a))
         //             .sum();
         //         (idx, sum_dist2)
         //     })
@@ -69,10 +65,8 @@ impl Solver for Expand {
         //     let new_pos = *new_pos;
 
         //     for pos in self.grid.positions.iter_mut() {
-        //         let x = pos.p.x - new_pos.p.x;
-        //         let y = pos.p.y - new_pos.p.y;
-        //         let dist = (x * x + y * y).sqrt();
-        //         if dist <= 10.0 {
+        //         let dist2 = distance2(pos, &new_pos);
+        //         if dist2 <= 100.0 {
         //             pos.taken = true;
         //         }
         //     }
@@ -88,10 +82,8 @@ impl Solver for Expand {
 
         for placement in &self.placements {
             for pos in self.grid.positions.iter_mut() {
-                let x = pos.p.x - placement.x;
-                let y = pos.p.y - placement.y;
-                let dist = (x * x + y * y).sqrt();
-                if dist <= 10.0 {
+                let dist2 = distance2(pos, placement);
+                if dist2 <= 100.0 {
                     pos.taken = true;
                 }
             }
@@ -144,8 +136,7 @@ impl Solver for Expand {
         //         for (idx, priority) in group_0.into_iter().chain(group_1.into_iter()) {
         //             self.pq.push(idx, priority);
         //         }
-        //     }
-        //     else {
+        //     } else {
         //         for (idx, priority) in group_0.into_iter().chain(group_1.into_iter()) {
         //             // Negative is better
         //             self.pq.push(idx, priority - individual_contribution);

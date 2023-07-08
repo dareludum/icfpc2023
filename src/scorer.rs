@@ -7,16 +7,13 @@ use nalgebra::Vector2;
 use rayon::prelude::*;
 
 use crate::{
-    common::Grid,
+    common::{distance2, Grid},
     dto::{Attendee, Instrument, PillarDto, Point2D, ProblemDto},
     solvers::Score,
 };
 
 fn calculate_impact(attendee: &Attendee, instrument: &Instrument, placement: &Point2D) -> i64 {
-    let x = attendee.x - placement.x;
-    let y = attendee.y - placement.y;
-
-    let distance_square = x * x + y * y;
+    let distance_square = distance2(placement, attendee);
 
     let impact =
         1000000_f64 * attendee.tastes[instrument.0 as usize] as f64 / distance_square as f64;

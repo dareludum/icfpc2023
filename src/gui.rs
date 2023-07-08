@@ -4,7 +4,7 @@ use colorgrad::Gradient;
 use raylib::prelude::*;
 
 use crate::{
-    common::{calculate_invalid_positions, Grid},
+    common::{calculate_invalid_positions, distance2, Coords2D, Grid},
     dto::{Attendee, Instrument},
     scorer::ImpactMap,
     solvers::{create_solver, Problem, Solution, Solver},
@@ -13,6 +13,16 @@ use crate::{
 struct ColorGradient {
     neg_gradient: Option<Gradient>,
     pos_gradient: Option<Gradient>,
+}
+
+impl Coords2D for Vector2 {
+    fn x(&self) -> f32 {
+        self.x
+    }
+
+    fn y(&self) -> f32 {
+        self.y
+    }
 }
 
 impl ColorGradient {
@@ -190,12 +200,7 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
             .iter()
             .enumerate()
             .filter(|(_idx, pos)| !pos.x.is_nan())
-            .map(|(idx, pos)| {
-                let x = mouse_pos_logical.x - pos.x;
-                let y = mouse_pos_logical.y - pos.y;
-                let dist2 = x * x + y * y;
-                (idx, dist2)
-            })
+            .map(|(idx, pos)| (idx, distance2(pos, &mouse_pos_logical)))
             .filter(|(_idx, dist2)| *dist2 <= 100.0)
             .collect::<Vec<_>>();
         musicians_in_range.sort_by(|(_idx0, dist0), (_idx1, dist1)| dist0.total_cmp(dist1));

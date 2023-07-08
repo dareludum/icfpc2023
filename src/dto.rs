@@ -12,6 +12,16 @@ pub struct Attendee {
     pub tastes: Vec<f32>,
 }
 
+impl Coords2D for Attendee {
+    fn x(&self) -> f32 {
+        self.x
+    }
+
+    fn y(&self) -> f32 {
+        self.y
+    }
+}
+
 #[derive(
     Serialize, Deserialize, Debug, Default, PartialEq, Eq, Hash, PartialOrd, Ord, Clone, Copy,
 )]
