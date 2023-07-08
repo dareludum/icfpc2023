@@ -42,6 +42,7 @@ impl Problem {
 #[derive(Default, Clone, Copy)]
 pub struct Score(pub i64);
 
+#[derive(Default)]
 pub struct Solution {
     pub score: Score,
     pub data: SolutionDto,

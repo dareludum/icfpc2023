@@ -35,7 +35,7 @@ pub struct ProblemDto {
     pub pillars: Vec<PillarDto>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct SolutionDto {
     pub placements: Vec<Point2D>,
 }
