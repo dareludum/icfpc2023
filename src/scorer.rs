@@ -62,12 +62,12 @@ fn calculate_attendee_happiness(
         }
 
         for pillar in pillars {
-            let pillar_center = Point2D {
-                x: pillar.center.0,
-                y: pillar.center.1,
-            };
-
-            if is_sound_blocked_2(&placements[i], &pillar_center, pillar.radius, attendee) {
+            if is_sound_blocked_2(
+                &placements[i],
+                &pillar.center.into(),
+                pillar.radius,
+                attendee,
+            ) {
                 continue 'hap_loop;
             }
         }
@@ -371,10 +371,7 @@ impl PillarBlockageMap {
                 pillars.iter().any(|p| {
                     is_sound_blocked_2(
                         &grid.positions[*idx_pos].p,
-                        &Point2D {
-                            x: p.center.0,
-                            y: p.center.1,
-                        },
+                        &p.center.into(),
                         p.radius,
                         &attendees[*idx_attendee],
                     )
@@ -389,93 +386,3 @@ impl PillarBlockageMap {
         self.blocked_positions.contains(&(idx_pos, idx_attendee))
     }
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use crate::dto::{Attendee, Placement};
-
-//     #[test]
-//     fn test_calculate_attendee_happiness_no_blocked() {
-//         let attendees = vec![
-//             Attendee {
-//                 x: 1.0,
-//                 y: 1.0,
-//                 tastes: vec![100.0, 200.0, 300.0],
-//             },
-//             Attendee {
-//                 x: 2.0,
-//                 y: 2.0,
-//                 tastes: vec![150.0, 250.0, 350.0],
-//             },
-//         ];
-
-//         let musicians = vec![Instrument(0), Instrument(1), Instrument(2)];
-
-//         let placements = vec![
-//             Placement { x: 0.0, y: 0.0 },
-//             Placement { x: 1.0, y: 1.0 },
-//             Placement { x: 2.0, y: 2.0 },
-//         ];
-
-//         let happiness = calculate_attendee_happiness(&attendees[0], &musicians, &placements);
-
-//         assert_eq!(happiness, 1499998.0);
-//     }
-
-//     #[test]
-//     fn test_calculate_attendee_happiness_with_blocked() {
-//         let attendees = vec![
-//             Attendee {
-//                 x: 1.0,
-//                 y: 1.0,
-//                 tastes: vec![100.0, 200.0, 300.0],
-//             },
-//             Attendee {
-//                 x: 2.0,
-//                 y: 2.0,
-//                 tastes: vec![150.0, 250.0, 350.0],
-//             },
-//         ];
-
-//         let musicians = vec![Instrument(0), Instrument(1), Instrument(2)];
-
-//         let placements = vec![
-//             Placement { x: 0.0, y: 0.0 },
-//             Placement { x: 1.0, y: 1.0 },
-//             Placement { x: 1.5, y: 1.5 }, // This musician is blocked by the previous one
-//         ];
-
-//         let happiness = calculate_attendee_happiness(&attendees[0], &musicians, &placements);
-
-//         assert_eq!(happiness, 1500000.0); // The blocked musician's impact is skipped
-//     }
-
-//     #[test]
-//     fn test_calculate_attendee_happiness_empty_musicians() {
-//         let attendees = vec![
-//             Attendee {
-//                 x: 1.0,
-//                 y: 1.0,
-//                 tastes: vec![100.0, 200.0, 300.0],
-//             },
-//             Attendee {
-//                 x: 2.0,
-//                 y: 2.0,
-//                 tastes: vec![150.0, 250.0, 350.0],
-//             },
-//         ];
-
-//         let musicians = vec![];
-
-//         let placements = vec![
-//             Placement { x: 0.0, y: 0.0 },
-//             Placement { x: 1.0, y: 1.0 },
-//             Placement { x: 2.0, y: 2.0 },
-//         ];
-
-//         let happiness = calculate_attendee_happiness(&attendees[0], &musicians, &placements);
-
-//         assert_eq!(happiness, 0.0); // No musicians, so happiness is 0
-//     }
-// }

@@ -93,6 +93,15 @@ impl From<Vector2<f32>> for Point2D {
     }
 }
 
+impl From<(f32, f32)> for Point2D {
+    fn from(value: (f32, f32)) -> Self {
+        Point2D {
+            x: value.0,
+            y: value.1,
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct SolutionMetaDto {
     pub solver_name: String,
