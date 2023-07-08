@@ -65,22 +65,23 @@ impl Genetic {
                 let mut correct_placed = false;
 
                 while !correct_placed {
+                    correct_placed = true;
+
                     for i in 0..placed {
                         let other_placement = placements[i as usize];
 
                         if distance(&placement, &other_placement) < 10.0 {
-                            correct_placed = false;
                             debug!(
                                 "Musicians too close, retrying, placement: {:?} other_placement: {:?}",
                                 placement, other_placement
                             );
                             placement = get_random_coords(&problem);
+                            correct_placed = false;
                             break;
                         }
-
-                        debug!("Placed musician at {:?}", placement);
-                        correct_placed = true;
                     }
+
+                    debug!("Placed musician at {:?}", placement);
                 }
 
                 placements.push(placement.clone());
