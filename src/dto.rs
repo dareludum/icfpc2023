@@ -15,6 +15,12 @@ pub struct Attendee {
 )]
 pub struct Instrument(pub u32);
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct PillarDto {
+    pub center: (f32, f32),
+    pub radius: f32,
+}
+
 // Default is to avoid Option<ProblemDto> in solvers
 #[derive(Serialize, Deserialize, Debug, Default, Clone)]
 pub struct ProblemDto {
@@ -25,6 +31,7 @@ pub struct ProblemDto {
     pub stage_bottom_left: (f32, f32),
     pub musicians: Vec<Instrument>,
     pub attendees: Vec<Attendee>,
+    pub pillars: Vec<PillarDto>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
