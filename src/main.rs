@@ -1,4 +1,5 @@
 use std::path::Path;
+use std::time::Instant;
 use std::{ffi::OsString, fs::DirEntry, path::PathBuf};
 
 use clap::Parser;
@@ -111,10 +112,19 @@ fn main() -> std::io::Result<()> {
         Some(Commands::Score { problem, solution }) => {
             let problem = Problem::load(Path::new(problem))?;
             let solution = SolutionDto::load(Path::new(solution))?;
+            let before_score = Instant::now();
             let score = scorer::score(&problem.data, &solution.placements);
+            let score_time = before_score.elapsed();
+
+            let before_fast_score = Instant::now();
             let fast_score = new_scorer::new_score(&problem.data, &solution.placements);
-            println!("score: {}", score.0);
-            println!("fast score: {}", fast_score.0);
+            let fast_score_time = before_fast_score.elapsed();
+            println!("score: {} ({}us)", score.0, score_time.as_micros());
+            println!(
+                "fast score: {} ({}us)",
+                fast_score.0,
+                fast_score_time.as_micros()
+            );
             Ok(())
         }
         _ => {
