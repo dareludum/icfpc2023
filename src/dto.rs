@@ -31,6 +31,7 @@ pub struct ProblemDto {
     pub stage_bottom_left: (f32, f32),
     pub musicians: Vec<Instrument>,
     pub attendees: Vec<Attendee>,
+    #[serde(default)]
     pub pillars: Vec<PillarDto>,
 }
 
@@ -47,7 +48,7 @@ impl SolutionDto {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
 pub struct Point2D {
     pub x: f32,
     pub y: f32,
