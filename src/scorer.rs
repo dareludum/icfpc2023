@@ -116,14 +116,15 @@ fn line_circle_intersection(
     let a_b = b - a;
     let a_b_norm = a_b.norm();
     assert!(a_b_norm > circle_radius);
-    let a_b_dir = a_b / a_b_norm;
+
     let a_circle = circle_center - a;
+    let a_b_dir = a_b / a_b_norm;
     let projected_len = a_b_dir.dot(&a_circle);
     if projected_len < 0. || projected_len > a_b_norm {
         return false;
     }
-    let circle_deviation = (a_circle.norm_squared() - projected_len * projected_len).sqrt();
-    circle_deviation < circle_radius
+    let circle_deviation_sq = a_circle.norm_squared() - projected_len * projected_len;
+    circle_deviation_sq < circle_radius * circle_radius
 }
 
 #[cfg(test)]
