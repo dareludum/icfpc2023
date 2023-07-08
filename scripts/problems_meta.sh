@@ -13,16 +13,20 @@ if [ ! -d "$folder_path" ]; then
   exit 1
 fi
 
-for file_path in "$folder_path"/*.json; do
+files=$(ls -1v "$folder_path"/*.json)
+
+for file_path in $files; do
   file_name=$(basename "$file_path" .json)
 
   json_data=$(cat "$file_path")
 
   attendees=$(echo "$json_data" | jq -r '.attendees | length')
   musicians=$(echo "$json_data" | jq -r '.musicians | length')
+  pillars=$(echo "$json_data" | jq -r '.pillars | length')
 
   echo "File: $file_name"
   echo "Number of Attendees: $attendees"
   echo "Number of Musicians: $musicians"
+  echo "Number of Pillars: $pillars"
   echo
 done
