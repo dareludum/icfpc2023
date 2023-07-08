@@ -151,12 +151,17 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
     let mut done = false;
     let mut selected_instrument = None;
     let mut taste_gradient = None;
+    let mut drag_start = None;
+    let mut viewport_offset = Vector2::zero();
+    let mut viewport_zoom_level = 0;
+    let mut viewport_zoom = 1.0;
 
     while !rl.window_should_close() {
         // ===== HIT TEST =====
         // TODO
 
         // ===== INTERACTION =====
+
         let mut do_step = auto_step;
         if let Some(k) = rl.get_key_pressed() {
             match k {
@@ -208,7 +213,28 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
             }
         }
 
+        if rl.is_mouse_button_pressed(MouseButton::MOUSE_MIDDLE_BUTTON) {
+            drag_start = Some(rl.get_mouse_position());
+        } else if rl.is_mouse_button_released(MouseButton::MOUSE_MIDDLE_BUTTON) {
+            drag_start = None;
+        }
+
+        let wheel_move = rl.get_mouse_wheel_move() as i32;
+        if wheel_move != 0 {
+            // TODO: Doesn't work well, fix if there's time
+            viewport_zoom_level += wheel_move;
+            viewport_zoom = 1.0 + 0.5 * viewport_zoom_level as f32;
+            viewport_offset -= rl.get_mouse_position().scale_by(wheel_move as f32 * 0.5);
+        }
+
         // ===== HANDLING =====
+
+        if let Some(start) = drag_start {
+            let new_mouse_pos = rl.get_mouse_position();
+            let offset = start - new_mouse_pos;
+            viewport_offset -= offset;
+            drag_start = Some(new_mouse_pos);
+        }
 
         if do_step && !done {
             let (s, d) = solver.solve_step();
@@ -232,30 +258,35 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
         }
 
         // ===== DRAWING =====
+
         let mut d = rl.begin_drawing(&thread);
         d.clear_background(Color::GRAY);
 
         d.draw_rectangle(
-            MARGIN,
-            MARGIN,
-            (data.room_width * ratio) as i32,
-            (data.room_height * ratio) as i32,
+            viewport_offset.x as i32 + MARGIN,
+            viewport_offset.y as i32 + MARGIN,
+            (data.room_width * ratio * viewport_zoom) as i32,
+            (data.room_height * ratio * viewport_zoom) as i32,
             Color::LIGHTGRAY,
         );
 
         d.draw_rectangle(
-            MARGIN + (data.stage_bottom_left.0 * ratio) as i32,
-            MARGIN + (data.stage_bottom_left.1 * ratio) as i32,
-            (data.stage_width * ratio) as i32,
-            (data.stage_height * ratio) as i32,
+            viewport_offset.x as i32
+                + MARGIN
+                + (data.stage_bottom_left.0 * ratio * viewport_zoom) as i32,
+            viewport_offset.y as i32
+                + MARGIN
+                + (data.stage_bottom_left.1 * ratio * viewport_zoom) as i32,
+            (data.stage_width * ratio * viewport_zoom) as i32,
+            (data.stage_height * ratio * viewport_zoom) as i32,
             Color::BEIGE,
         );
 
         for attendee in data.attendees.iter() {
             d.draw_circle(
-                MARGIN + (attendee.x * ratio) as i32,
-                MARGIN + (attendee.y * ratio) as i32,
-                10.0 * ratio,
+                viewport_offset.x as i32 + MARGIN + (attendee.x * ratio * viewport_zoom) as i32,
+                viewport_offset.y as i32 + MARGIN + (attendee.y * ratio * viewport_zoom) as i32,
+                10.0 * ratio * viewport_zoom,
                 taste_gradient
                     .as_ref()
                     .map(|g| {
@@ -269,9 +300,9 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
             for p in &solution.placements {
                 if !p.x.is_nan() {
                     d.draw_circle(
-                        MARGIN + (p.x * ratio) as i32,
-                        MARGIN + (p.y * ratio) as i32,
-                        10.0 * ratio,
+                        viewport_offset.x as i32 + MARGIN + (p.x * ratio * viewport_zoom) as i32,
+                        viewport_offset.y as i32 + MARGIN + (p.y * ratio * viewport_zoom) as i32,
+                        10.0 * ratio * viewport_zoom,
                         Color::BLUE,
                     );
                 }
@@ -279,14 +310,42 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
             for p in &solution.placements {
                 if !p.x.is_nan() {
                     d.draw_circle(
-                        MARGIN + (p.x * ratio) as i32,
-                        MARGIN + (p.y * ratio) as i32,
-                        5.0 * ratio,
+                        viewport_offset.x as i32 + MARGIN + (p.x * ratio * viewport_zoom) as i32,
+                        viewport_offset.y as i32 + MARGIN + (p.y * ratio * viewport_zoom) as i32,
+                        5.0 * ratio * viewport_zoom,
                         Color::BLACK,
                     );
                 }
             }
+            if viewport_zoom * ratio >= 1.0 {
+                for (idx, p) in solution.placements.iter().enumerate() {
+                    if !p.x.is_nan() {
+                        d.draw_text(
+                            &data.musicians[idx].0.to_string(),
+                            viewport_offset.x as i32
+                                + MARGIN
+                                + (p.x * ratio * viewport_zoom) as i32
+                                - 2,
+                            viewport_offset.y as i32
+                                + MARGIN
+                                + (p.y * ratio * viewport_zoom) as i32
+                                - 4,
+                            10,
+                            Color::WHITE,
+                        )
+                    }
+                }
+            }
         }
+
+        // Post-clear the right panel
+        d.draw_rectangle(
+            MARGIN * 2 + WIDTH,
+            0,
+            RIGHT_SIDE_WIDTH,
+            HEIGHT + MARGIN * 2,
+            Color::GRAY,
+        );
 
         if let Some(instrument) = selected_instrument {
             if let Some(impact_map) = solver.get_impact_map(&Instrument(instrument)) {
@@ -295,10 +354,14 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
                 for (pos, score) in grid.positions.iter().zip(&impact_map.scores) {
                     if !pos.taken {
                         d.draw_rectangle(
-                            MARGIN + ((pos.p.x - 1.0) * ratio) as i32,
-                            MARGIN + ((pos.p.y - 1.0) * ratio) as i32,
-                            (3.0 * ratio) as i32,
-                            (3.0 * ratio) as i32,
+                            viewport_offset.x as i32
+                                + MARGIN
+                                + ((pos.p.x - 1.0) * ratio * viewport_zoom) as i32,
+                            viewport_offset.y as i32
+                                + MARGIN
+                                + ((pos.p.y - 1.0) * ratio * viewport_zoom) as i32,
+                            (3.0 * ratio * viewport_zoom) as i32,
+                            (3.0 * ratio * viewport_zoom) as i32,
                             gradient.get_color(score.0 as f64),
                         );
                     }
