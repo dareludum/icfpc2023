@@ -74,7 +74,7 @@ fn calculate_attendee_happiness(
 
         let impact = calculate_impact(attendee, &musicians[i], &placements[i]);
 
-        if closeness_factors.len() > 0 {
+        if !closeness_factors.is_empty() {
             happiness += (closeness_factors[i] * impact as f64).ceil() as i64;
         } else {
             happiness += impact;
@@ -219,7 +219,7 @@ fn calculate_closeness_factors(musicians: &[Instrument], placements: &[Point2D])
 }
 pub fn score(problem: &ProblemDto, placements: &[Point2D]) -> Score {
     // if there are pillars then it is a task from spec v2
-    let closeness_factors = if problem.pillars.len() == 0 {
+    let closeness_factors = if problem.pillars.is_empty() {
         vec![]
     } else {
         calculate_closeness_factors(&problem.musicians, placements)
