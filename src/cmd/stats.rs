@@ -9,6 +9,14 @@ pub fn stats(problems_n: &[String], solvers: &[String]) -> Result<(), std::io::E
         let best_fname = format!("./solutions/best/{n}_meta.json");
         let best_path = Path::new(&best_fname);
 
+        if !best_path.exists() {
+            println!("Problem {n}");
+            println!("------------------------------------");
+            println!("!!! NO SOLUTION !!!");
+            println!("------------------------------------");
+            continue;
+        }
+
         let best: SolutionMetaDto = serde_json::from_str(&fs::read_to_string(best_path)?)?;
         sum_best += best.score;
         let mut current_solved = Vec::with_capacity(problems_n.len());
