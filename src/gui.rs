@@ -171,7 +171,7 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
                         auto_score = !auto_score;
                     }
                     if let Some(solution) = solution.as_ref() {
-                        score = Some(crate::scorer::score(&data, &solution.placements));
+                        score = Some(crate::scorer::score(data, &solution.placements));
                     }
                 }
                 KeyboardKey::KEY_Q => {
@@ -210,27 +210,25 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
 
         // ===== HANDLING =====
 
-        if do_step {
-            if !done {
-                let (s, d) = solver.solve_step();
-                if auto_score {
-                    score = Some(crate::scorer::score(&data, &s.placements));
-                } else {
-                    score = None;
-                }
-                Solution {
-                    data: s.clone(),
-                    score: score.unwrap_or(Score(0)),
-                }
-                .save(
-                    solver.name().to_owned(),
-                    &problem,
-                    &PathBuf::from("./solutions/current/gui"),
-                )
-                .expect("Failed to write solution");
-                solution = Some(s);
-                done = d;
+        if do_step && !done {
+            let (s, d) = solver.solve_step();
+            if auto_score {
+                score = Some(crate::scorer::score(data, &s.placements));
+            } else {
+                score = None;
             }
+            Solution {
+                data: s.clone(),
+                score: score.unwrap_or(Score(0)),
+            }
+            .save(
+                solver.name().to_owned(),
+                &problem,
+                &PathBuf::from("./solutions/current/gui"),
+            )
+            .expect("Failed to write solution");
+            solution = Some(s);
+            done = d;
         }
 
         // ===== DRAWING =====
@@ -333,7 +331,7 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
             ),
         ];
 
-        for (idx, line) in lines.into_iter().enumerate() {
+        for (idx, line) in lines.iter().enumerate() {
             d.draw_text(
                 line,
                 WIDTH + MARGIN * 2,
