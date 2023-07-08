@@ -29,13 +29,16 @@ impl Default for Genetic {
 }
 
 impl Solver for Genetic {
-    fn name(&self) -> &str {
-        "genetic"
+    fn name(&self) -> String {
+        "genetic".to_string()
     }
 
-    fn initialize(&mut self, problem: &super::Problem) {
+    fn initialize(&mut self, problem: &super::Problem, solution: SolutionDto) {
         self.problem = problem.data.clone();
         self.population = self.create_initial_population(self.population_size, &self.problem);
+        if !solution.placements.is_empty() {
+            self.population[0].placements = solution.placements;
+        }
     }
 
     fn solve_step(&mut self) -> (SolutionDto, bool) {
