@@ -1,14 +1,16 @@
-use crate::{
-    dto::{Point2D, ProblemDto},
-    kdtree::{KDTree, AABB},
+use crate::dto::{Point2D, ProblemDto};
+use nalgebra::{Point2, Vector2};
+use parry2d::{
+    bounding_volume::Aabb,
+    partitioning::{Qbvh, QbvhUpdateWorkspace},
+    query::{visitors::RayIntersectionsVisitor, Ray},
 };
-use nalgebra::Vector2;
 
 pub struct Collider<'sol, 'pro> {
     placements: &'sol [Point2D],
     problem: &'pro ProblemDto,
-    pillar_count: usize,
-    kdtree: KDTree,
+    qbvh: Qbvh<usize>,
+    workspace: QbvhUpdateWorkspace,
 }
 
 #[derive(PartialEq, Eq, Debug, Copy, Clone)]
@@ -17,99 +19,99 @@ pub enum Obstacle {
     Pillar(usize),
 }
 
-impl<'sol, 'pro> Collider<'sol, 'pro> {
-    fn lookup_obstacle(&self, index: usize) -> Obstacle {
-        if index < self.pillar_count {
-            return Obstacle::Pillar(index);
+fn lookup_obstacle(pillar_count: usize, index: usize) -> Obstacle {
+    if index < pillar_count {
+        return Obstacle::Pillar(index);
+    }
+    Obstacle::Musician(index - pillar_count)
+}
+
+fn get_circle(
+    placements: &[Point2D],
+    problem: &ProblemDto,
+    obstacle: Obstacle,
+) -> (Vector2<f32>, f32) {
+    match obstacle {
+        Obstacle::Musician(i) => (placements[i].as_vec(), 5.0),
+        Obstacle::Pillar(i) => {
+            let pillar = &problem.pillars[i];
+            (pillar.as_vec(), pillar.radius)
         }
-        Obstacle::Musician(index - self.pillar_count)
-    }
-
-    fn get_circle(&self, obstacle: Obstacle) -> (Vector2<f32>, f32) {
-        match obstacle {
-            Obstacle::Musician(i) => (self.placements[i].as_vec(), 5.0),
-            Obstacle::Pillar(i) => {
-                let pillar = &self.problem.pillars[i];
-                (pillar.as_vec(), pillar.radius)
-            }
-        }
-    }
-
-    pub fn new(problem: &'pro ProblemDto, placements: &'sol [Point2D]) -> Collider<'sol, 'pro> {
-        let mut bbs = vec![];
-        bbs.reserve_exact(problem.musicians.len() + problem.pillars.len());
-
-        for pillar in &problem.pillars {
-            let pos = Vector2::new(pillar.center.0, pillar.center.1);
-            bbs.push(circle_bounds(&pos, pillar.radius));
-        }
-
-        for musician_pos in placements {
-            bbs.push(circle_bounds(&musician_pos.as_vec(), 5.0));
-        }
-
-        Collider {
-            problem,
-            placements,
-            pillar_count: 0usize,
-            kdtree: KDTree::build(&bbs),
-        }
-    }
-
-    fn intersection_candidates(&self, origin: &Vector2<f32>, dir: &Vector2<f32>) -> Vec<Obstacle> {
-        self.kdtree
-            .intersect(origin, dir)
-            .iter()
-            .map(|i| self.lookup_obstacle(*i))
-            .collect()
-    }
-
-    fn filter_candidates(
-        &self,
-        candidates: Vec<Obstacle>,
-        attendee_i: usize,
-        musician_i: usize,
-    ) -> Vec<Obstacle> {
-        let attendee_location = self.problem.attendees[attendee_i].as_vec();
-        let musician_location = self.placements[musician_i].as_vec();
-
-        candidates
-            .into_iter()
-            .filter(|obstacle| {
-                // skip collision check with the target musician
-                if *obstacle == Obstacle::Musician(musician_i) {
-                    false
-                } else {
-                    let (center, radius) = self.get_circle(*obstacle);
-                    crate::geometry::line_circle_intersection(
-                        &attendee_location,
-                        &musician_location,
-                        &center,
-                        radius,
-                    )
-                }
-            })
-            .collect()
-    }
-
-    pub fn intersect(&self, attendee_i: usize, musician_i: usize) -> Vec<Obstacle> {
-        let attendee_location = self.problem.attendees[attendee_i].as_vec();
-        let musician_location = self.placements[musician_i].as_vec();
-
-        let candidates = self.intersection_candidates(
-            &attendee_location,
-            &(musician_location - attendee_location).normalize(),
-        );
-        self.filter_candidates(candidates, attendee_i, musician_i)
-    }
-
-    pub fn is_hidden(&self, attendee_i: usize, musician_i: usize) -> bool {
-        !self.intersect(attendee_i, musician_i).is_empty()
     }
 }
 
-fn circle_bounds(position: &Vector2<f32>, radius: f32) -> AABB {
-    let min = Vector2::new(position.x - radius, position.y - radius);
-    let max = Vector2::new(position.x + radius, position.y + radius);
-    AABB::new(min, max)
+impl<'sol, 'pro> Collider<'sol, 'pro> {
+    fn pillar_count(&self) -> usize {
+        self.problem.pillars.len()
+    }
+
+    /// Re-fetches and updates the position of nodes
+    fn refit(&mut self) {
+        let margin = 0.002f32;
+        let pillar_count = self.pillar_count();
+        self.qbvh.refit(margin, &mut self.workspace, |index| {
+            let obstacle = lookup_obstacle(pillar_count, *index);
+            let (center, radius) = get_circle(self.placements, self.problem, obstacle);
+            circle_bounds(&center, radius)
+        });
+        self.qbvh.rebalance(margin, &mut self.workspace);
+    }
+
+    pub fn new(problem: &'pro ProblemDto, placements: &'sol [Point2D]) -> Collider<'sol, 'pro> {
+        let node_count = problem.musicians.len() + problem.pillars.len();
+
+        let mut qbvh: Qbvh<usize> = Qbvh::new();
+        let workspace = QbvhUpdateWorkspace::default();
+
+        for i in 0..node_count {
+            qbvh.pre_update_or_insert(i);
+        }
+
+        let mut collider = Collider {
+            problem,
+            placements,
+            qbvh,
+            workspace,
+        };
+        collider.refit();
+        collider
+    }
+
+    pub fn is_hidden(&self, attendee_i: usize, musician_i: usize) -> bool {
+        let attendee_location = &self.problem.attendees[attendee_i].as_vec();
+        let musician_location = self.placements[musician_i].as_vec();
+        let dir = (musician_location - attendee_location).normalize();
+        let ray = Ray::new(Point2::new(attendee_location.x, attendee_location.y), dir);
+
+        let mut callback = |node_index: &usize| {
+            // TODO: perform intersection
+            // skip collision check with the target musician
+            let obstacle = lookup_obstacle(self.pillar_count(), *node_index);
+            if obstacle == Obstacle::Musician(musician_i) {
+                return true;
+            }
+
+            let (center, radius) = get_circle(self.placements, self.problem, obstacle);
+            if crate::geometry::line_circle_intersection(
+                attendee_location,
+                &musician_location,
+                &center,
+                radius,
+            ) {
+                false
+            } else {
+                true
+            }
+        };
+
+        let mut visitor = RayIntersectionsVisitor::new(&ray, std::f32::INFINITY, &mut callback);
+        let collided = !self.qbvh.traverse_depth_first(&mut visitor);
+        collided
+    }
+}
+
+fn circle_bounds(position: &Vector2<f32>, radius: f32) -> Aabb {
+    let min = Point2::new(position.x - radius, position.y - radius);
+    let max = Point2::new(position.x + radius, position.y + radius);
+    Aabb::new(min, max)
 }
