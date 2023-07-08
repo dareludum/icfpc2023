@@ -5,6 +5,7 @@ use log::debug;
 use crate::{
     dto::{Point2D, ProblemDto},
     geometry::{distance2, Coords2D},
+    solvers::Problem,
 };
 
 #[derive(Clone, Copy)]
@@ -30,19 +31,27 @@ pub struct Grid {
 }
 
 impl Grid {
-    pub fn new(problem: &ProblemDto) -> Self {
-        let x = problem.stage_bottom_left.0 + 10.0;
-        let y = problem.stage_bottom_left.1 + 10.0;
-        let until_x = problem.stage_bottom_left.0 + problem.stage_width - 10.0;
-        let until_y = problem.stage_bottom_left.1 + problem.stage_height - 10.0;
+    pub fn new(problem: &Problem) -> Self {
+        let data = &problem.data;
+        let x = data.stage_bottom_left.0 + 10.0;
+        let y = data.stage_bottom_left.1 + 10.0;
+        let until_x = data.stage_bottom_left.0 + data.stage_width - 10.0;
+        let until_y = data.stage_bottom_left.1 + data.stage_height - 10.0;
 
-        debug!("common: {} total musicians", problem.musicians.len());
-        let max_instrument = problem.musicians.iter().map(|i| i.0).max().unwrap();
-        debug!("common: {} total instruments", max_instrument);
+        debug!(
+            "common({}): {} total musicians",
+            problem.id,
+            data.musicians.len()
+        );
+        let max_instrument = data.musicians.iter().map(|i| i.0).max().unwrap();
+        debug!(
+            "common({}): {} total instruments",
+            problem.id, max_instrument
+        );
 
-        let weight_factor = problem.musicians.len() as f32 / max_instrument as f32;
+        let weight_factor = data.musicians.len() as f32 / max_instrument as f32;
         let max_position_count = 1000000.0 / max_instrument as f32 / weight_factor;
-        let min_position_count = problem.musicians.len() as f32 * 4.0;
+        let min_position_count = data.musicians.len() as f32 * 4.0;
         const MIN_DELTA: f32 = 0.5;
         let mut delta = MIN_DELTA;
         loop {
@@ -59,7 +68,7 @@ impl Grid {
             delta *= 1.01;
         }
 
-        debug!("common: delta = {}", delta);
+        debug!("common({}): delta = {}", problem.id, delta);
 
         let mut positions = vec![];
         let mut curr_y = y;
@@ -78,7 +87,11 @@ impl Grid {
             curr_y += delta;
         }
 
-        debug!("common: {} total positions", positions.len());
+        debug!(
+            "common({}): {} total positions",
+            problem.id,
+            positions.len()
+        );
 
         Grid { positions }
     }

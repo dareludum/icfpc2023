@@ -4,7 +4,7 @@ use rand::seq::SliceRandom;
 
 use crate::{
     common::Grid,
-    dto::{Point2D, ProblemDto, SolutionDto},
+    dto::{Point2D, SolutionDto},
     geometry::distance2,
 };
 
@@ -12,7 +12,7 @@ use super::{Problem, Score, Solver};
 
 #[derive(Default, Clone)]
 pub struct Expand {
-    problem: ProblemDto,
+    problem: Problem,
     grid: Grid,
     placements: Vec<Point2D>,
     pq: PriorityQueue<usize, i64>,
@@ -35,7 +35,7 @@ impl Solver for Expand {
             "expand: must be the start of the chain"
         );
 
-        self.problem = problem.data.clone();
+        self.problem = problem.clone();
 
         self.grid = Grid::new(&self.problem);
 
@@ -79,10 +79,10 @@ impl Solver for Expand {
         //     }
         // }
 
-        let stride = self.grid.positions.len() / self.problem.musicians.len();
+        let stride = self.grid.positions.len() / self.problem.data.musicians.len();
         for (idx, _) in (0..self.grid.positions.len())
             .step_by(stride)
-            .zip(0..self.problem.musicians.len())
+            .zip(0..self.problem.data.musicians.len())
         {
             self.placements.push(self.grid.positions[idx].p);
         }
@@ -97,14 +97,14 @@ impl Solver for Expand {
         }
 
         let mut pq = PriorityQueue::new();
-        for (idx, _) in self.problem.musicians.iter().enumerate() {
+        for (idx, _) in self.problem.data.musicians.iter().enumerate() {
             pq.push(idx, 0);
         }
 
         self.pq = pq;
-        self.curr_score = crate::scorer::score(&self.problem, &self.placements);
+        self.curr_score = crate::scorer::score(&self.problem.data, &self.placements);
 
-        debug!("expand: initialized");
+        debug!("expand({}): initialized", self.problem.id);
     }
 
     fn solve_step(&mut self) -> (SolutionDto, bool) {
@@ -190,7 +190,7 @@ impl Solver for Expand {
                     new_placements[*idx] = pos.p;
                 }
 
-                let new_score = crate::scorer::score(&self.problem, &new_placements);
+                let new_score = crate::scorer::score(&self.problem.data, &new_placements);
                 let diff = new_score.0 - self.curr_score.0;
 
                 if diff > 0 {
@@ -199,7 +199,10 @@ impl Solver for Expand {
 
                     self.grid.recalculate_taken(&self.placements);
 
-                    debug!("expand : won (group size {})", group_size);
+                    debug!(
+                        "expand({}) : won (group size {})",
+                        self.problem.id, group_size
+                    );
                     break;
                 } else {
                     self.placements = old_placements;
@@ -225,14 +228,17 @@ impl Solver for Expand {
                     new_placements.swap(*idx0, *idx1);
                 }
 
-                let new_score = crate::scorer::score(&self.problem, &new_placements);
+                let new_score = crate::scorer::score(&self.problem.data, &new_placements);
                 let diff = new_score.0 - self.curr_score.0;
 
                 if diff > 0 {
                     self.placements = new_placements;
                     self.curr_score = new_score;
 
-                    debug!("shuffle: won (group size {})", group_size);
+                    debug!(
+                        "shuffle({}): won (group size {})",
+                        self.problem.id, group_size
+                    );
                     break;
                 }
             }

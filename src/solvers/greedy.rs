@@ -5,7 +5,7 @@ use rayon::prelude::*;
 
 use crate::{
     common::Grid,
-    dto::{Instrument, Point2D, ProblemDto, SolutionDto},
+    dto::{Instrument, Point2D, SolutionDto},
     geometry::distance2,
     scorer::{ImpactMap, PillarBlockageMap},
 };
@@ -14,7 +14,7 @@ use super::{Problem, Solver};
 
 #[derive(Default, Clone)]
 pub struct Greedy {
-    problem: ProblemDto,
+    problem: Problem,
     grid: Grid,
     placements: Vec<Point2D>,
     remaining_musicians: HashSet<usize>,
@@ -38,16 +38,24 @@ impl Solver for Greedy {
     fn initialize(&mut self, problem: &Problem, solution: SolutionDto) {
         assert!(
             solution.placements.is_empty(),
-            "greedy: must be the start of the chain"
+            "greedy({}): must be the start of the chain",
+            problem.id
         );
 
-        self.problem = problem.data.clone();
+        self.problem = problem.clone();
 
         self.grid = Grid::new(&self.problem);
 
-        let max_instrument = self.problem.musicians.iter().map(|i| i.0).max().unwrap();
+        let max_instrument = self
+            .problem
+            .data
+            .musicians
+            .iter()
+            .map(|i| i.0)
+            .max()
+            .unwrap();
 
-        for i in 0..self.problem.musicians.len() {
+        for i in 0..self.problem.data.musicians.len() {
             self.remaining_musicians.insert(i);
             self.placements.push(Point2D {
                 x: f32::NAN,
@@ -55,15 +63,19 @@ impl Solver for Greedy {
             });
         }
 
-        debug!("greedy: computing pillar blockage map");
-        self.pillar_blockage_map =
-            PillarBlockageMap::new(&self.grid, &self.problem.pillars, &self.problem.attendees);
+        debug!("greedy({}): computing pillar blockage map", self.problem.id);
+        self.pillar_blockage_map = PillarBlockageMap::new(
+            &self.grid,
+            &self.problem.data.pillars,
+            &self.problem.data.attendees,
+        );
         debug!(
-            "greedy: {} blocked pairs",
+            "greedy({}): {} blocked pairs",
+            self.problem.id,
             self.pillar_blockage_map.blocked_positions.len()
         );
 
-        debug!("greedy: computing impact maps");
+        debug!("greedy({}): computing impact maps", self.problem.id);
         self.impact_maps = (0..=max_instrument)
             .map(Instrument)
             .collect::<Vec<_>>()
@@ -71,7 +83,7 @@ impl Solver for Greedy {
             .map(|i| {
                 let impact_map = ImpactMap::new(
                     i,
-                    &self.problem.attendees,
+                    &self.problem.data.attendees,
                     &self.grid,
                     &self.pillar_blockage_map,
                 );
@@ -79,7 +91,7 @@ impl Solver for Greedy {
             })
             .collect();
 
-        debug!("greedy: initialized");
+        debug!("greedy({}): initialized", self.problem.id);
     }
 
     fn solve_step(&mut self) -> (SolutionDto, bool) {
@@ -89,7 +101,7 @@ impl Solver for Greedy {
 
         let mut remaining_instruments = BTreeMap::new();
         for idx in &self.remaining_musicians {
-            let instrument = self.problem.musicians[*idx];
+            let instrument = self.problem.data.musicians[*idx];
             if let std::collections::btree_map::Entry::Vacant(e) =
                 remaining_instruments.entry(instrument)
             {
@@ -111,7 +123,7 @@ impl Solver for Greedy {
         let idx = *self
             .remaining_musicians
             .iter()
-            .find(|idx| self.problem.musicians[**idx] == best_instrument)
+            .find(|idx| self.problem.data.musicians[**idx] == best_instrument)
             .unwrap();
         self.remaining_musicians.remove(&idx);
 
@@ -134,7 +146,7 @@ impl Solver for Greedy {
 
         let blocked_positions = ImpactMap::calculate_blocked_positions(
             &best_pos.p,
-            &self.problem.attendees,
+            &self.problem.data.attendees,
             &self.grid,
         );
         self.impact_maps.par_iter_mut().for_each(|(i, im)| {
@@ -143,7 +155,7 @@ impl Solver for Greedy {
             }
             im.update(
                 &best_instrument,
-                &self.problem.attendees,
+                &self.problem.data.attendees,
                 &self.grid,
                 &new_taken_positions,
                 &blocked_positions,
@@ -151,7 +163,11 @@ impl Solver for Greedy {
             );
         });
 
-        debug!("greedy: {} musicians left", self.remaining_musicians.len());
+        debug!(
+            "greedy({}): {} musicians left",
+            self.problem.id,
+            self.remaining_musicians.len()
+        );
 
         (
             SolutionDto {
