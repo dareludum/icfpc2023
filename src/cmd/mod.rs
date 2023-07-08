@@ -16,6 +16,8 @@ pub struct Args {
     pub command: Option<Commands>,
     #[clap(short, long)]
     pub log_level: Option<String>,
+    #[clap(short, long)]
+    pub gui: bool,
 }
 
 #[derive(Subcommand, Debug)]

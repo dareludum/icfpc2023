@@ -103,13 +103,24 @@ fn solve(solvers: &[String], problem_paths: &[PathBuf]) -> std::io::Result<()> {
 pub fn default_command(
     problem_paths: &[PathBuf],
     solvers: Option<Vec<String>>,
+    gui: bool,
 ) -> Result<(), std::io::Error> {
-    match (problem_paths, solvers) {
-        ([problem_path], None) => {
+    match (problem_paths, solvers, gui) {
+        ([problem_path], None, _) => {
             gui_main(&std::path::PathBuf::from(problem_path), "expand");
             Ok(())
         }
-        (paths, Some(solvers)) => solve(&solvers, paths),
-        (_, None) => panic!("No problem paths and solvers provided"),
+        ([problem_path], Some(solvers), true) => {
+            if solvers.len() != 1 {
+                panic!("Only one solver can be used in GUI mode");
+            }
+
+            let solver = solvers.first().expect("Expected exactly one solver");
+            gui_main(&std::path::PathBuf::from(problem_path), solver);
+            Ok(())
+        }
+        (paths, Some(solvers), false) => solve(&solvers, paths),
+        (_, Some(_), true) => panic!("GUI mode is not supported with multiple solvers"),
+        (_, None, _) => panic!("No problem paths and solvers provided"),
     }
 }
