@@ -100,6 +100,7 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
     let data = &problem.data;
     std::fs::create_dir_all("./solutions/current/gui")
         .expect("Failed to create the directory ./solutions/current/gui");
+    logging::set_trace_log(TraceLogLevel::LOG_WARNING);
 
     let mut solver = create_solver(solver_name);
     solver.initialize(&problem);
