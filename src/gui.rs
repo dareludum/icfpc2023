@@ -4,8 +4,9 @@ use colorgrad::Gradient;
 use raylib::prelude::*;
 
 use crate::{
-    common::{calculate_invalid_positions, distance2, Coords2D, Grid},
+    common::{calculate_invalid_positions, Grid},
     dto::{Attendee, Instrument},
+    geometry::{distance2, Coords2D},
     scorer::ImpactMap,
     solvers::{create_solver, Problem, Solution, Solver},
 };

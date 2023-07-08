@@ -3,8 +3,9 @@ use priority_queue::PriorityQueue;
 use rand::seq::SliceRandom;
 
 use crate::{
-    common::{distance2, Grid},
+    common::Grid,
     dto::{Point2D, ProblemDto, SolutionDto},
+    geometry::distance2,
 };
 
 use super::{Problem, Score, Solver};
