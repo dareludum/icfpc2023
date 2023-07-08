@@ -53,6 +53,10 @@ submit_solution() {
     local submission_id="$(submission_payload "$problem_id" < "$solution_path" | post_submission | tr -d '"')"
     printf "Submission id: '%s'\n" "$submission_id"
 
+    if [ -n "$NOWAIT" ]; then
+        return
+    fi
+
     if [ -z "$submission_id" ]; then
         err "Empty submission id, bailing out"
         return
