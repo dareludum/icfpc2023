@@ -40,7 +40,7 @@ fn compute_closeness(problem: &ProblemDto, placements: &[Point2D]) -> Vec<f32> {
         }
     }
 
-    return musicians_closeness;
+    musicians_closeness
 }
 
 #[allow(dead_code)]
@@ -79,7 +79,7 @@ pub fn new_score(problem: &ProblemDto, placements: &[Point2D]) -> Score {
                     };
                     attendee_score += score
                 }
-                return attendee_score;
+                attendee_score
             })
             .sum(),
     )
