@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use log::debug;
 
 use crate::dto::{Point2D, ProblemDto};
@@ -87,4 +89,35 @@ impl Grid {
             }
         }
     }
+}
+
+pub trait Coords2D {
+    fn x(&self) -> f32;
+    fn y(&self) -> f32;
+}
+
+pub fn distance2<C0: Coords2D, C1: Coords2D>(c0: &C0, c1: &C1) -> f32 {
+    let x = c0.x() - c1.x();
+    let y = c0.y() - c1.y();
+    x * x + y * y
+}
+
+pub fn calculate_invalid_positions(positions: &[Point2D]) -> HashSet<usize> {
+    let mut result = HashSet::new();
+    for i in 0..positions.len() {
+        if positions[i].x.is_nan() {
+            continue;
+        }
+        for j in 0..i {
+            if positions[j].x.is_nan() {
+                continue;
+            }
+            if distance2(&positions[i], &positions[j]) < 100.0 {
+                dbg!((i, j, distance2(&positions[i], &positions[j])));
+                result.insert(i);
+                result.insert(j);
+            }
+        }
+    }
+    result
 }
