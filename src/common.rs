@@ -115,7 +115,6 @@ pub fn calculate_invalid_positions(positions: &[Point2D]) -> HashSet<usize> {
                 continue;
             }
             if distance2(&positions[i], &positions[j]) < 100.0 {
-                dbg!((i, j, distance2(&positions[i], &positions[j])));
                 result.insert(i);
                 result.insert(j);
             }

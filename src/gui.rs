@@ -30,7 +30,7 @@ impl ColorGradient {
     pub fn new(min_taste: f64, max_taste: f64) -> Self {
         let mut neg_gradient = None;
         let mut pos_gradient = None;
-        if min_taste < 0.0 {
+        if min_taste <= 0.0 {
             neg_gradient = Some(
                 colorgrad::CustomGradient::new()
                     .colors(&[
@@ -95,7 +95,7 @@ impl ColorGradient {
     }
 
     pub fn get_color(&self, value: f64) -> raylib::prelude::Color {
-        let gradient = if value < 0.0 {
+        let gradient = if value <= 0.0 {
             self.neg_gradient.as_ref().unwrap()
         } else {
             self.pos_gradient.as_ref().unwrap()
@@ -117,7 +117,6 @@ fn save_solution(solution: &Solution, solver: &Box<dyn Solver>, problem: &Proble
 }
 
 pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
-    dbg!(problem_path);
     let problem = Problem::load(problem_path).expect("Failed to read the problem file");
     let data = &problem.data;
     std::fs::create_dir_all("./solutions/current/gui")
@@ -165,7 +164,6 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
         HEIGHT as f32 / max_y
     };
     let ratio = ratio_x.min(ratio_y);
-    dbg!(ratio);
 
     let max_instrument = data.musicians.iter().map(|i| i.0).max().unwrap();
 
