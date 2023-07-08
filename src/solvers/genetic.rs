@@ -92,19 +92,16 @@ impl Genetic {
 
         for _ in 0..population_size {
             let mut placements = Vec::new();
-            placements.push(get_random_coords(&problem));
+            placements.push(get_random_coords(problem));
             let mut placed = 1;
 
             for _ in 0..problem.musicians.len() {
-                let placement = generate_random_placement(problem, placed, &placements);
-
-                // debug!("Placed musician at {:?}", placement);
-                placements.push(placement.clone());
+                placements.push(generate_random_placement(problem, placed, &placements));
                 placed += 1;
             }
 
             let individual = Individual {
-                fitness: new_score(&problem, &placements).0,
+                fitness: new_score(problem, &placements).0,
                 placements,
             };
 
@@ -209,8 +206,8 @@ impl Genetic {
             let musician = rng.gen_range(0..size - 1);
 
             // Swap the positions of this musician in the children
-            child1.placements[musician] = parent2.placements[musician].clone();
-            child2.placements[musician] = parent1.placements[musician].clone();
+            child1.placements[musician] = parent2.placements[musician];
+            child2.placements[musician] = parent1.placements[musician];
         }
 
         random_repair_invalid_positions(&self.problem, &mut child1.placements);
@@ -220,26 +217,22 @@ impl Genetic {
     }
 }
 
-fn random_repair_invalid_positions(problem: &ProblemDto, placements: &mut Vec<Point2D>) {
-    let mut invalid_positions = calculate_invalid_positions(&placements, problem);
+fn random_repair_invalid_positions(problem: &ProblemDto, placements: &mut [Point2D]) {
+    let mut invalid_positions = calculate_invalid_positions(placements, problem);
 
     while !invalid_positions.is_empty() {
         for invalid_position in invalid_positions.iter() {
             let placement =
-                generate_random_placement(problem, *invalid_position as i32, &placements);
+                generate_random_placement(problem, *invalid_position as i32, placements);
             placements[*invalid_position] = placement;
         }
 
-        invalid_positions = calculate_invalid_positions(&placements, problem);
+        invalid_positions = calculate_invalid_positions(placements, problem);
     }
 }
 
-fn generate_random_placement(
-    problem: &ProblemDto,
-    placed: i32,
-    placements: &Vec<Point2D>,
-) -> Point2D {
-    let mut placement = get_random_coords(&problem);
+fn generate_random_placement(problem: &ProblemDto, placed: i32, placements: &[Point2D]) -> Point2D {
+    let mut placement = get_random_coords(problem);
     let mut correct_placed = false;
 
     while !correct_placed {
@@ -249,7 +242,7 @@ fn generate_random_placement(
             let other_placement = placements[i as usize];
 
             if distance(&placement, &other_placement) < 10.0 {
-                placement = get_random_coords(&problem);
+                placement = get_random_coords(problem);
                 correct_placed = false;
                 break;
             }
@@ -279,7 +272,7 @@ fn get_random_coords(problem: &ProblemDto) -> Point2D {
 
 impl Individual {
     fn recalculate_fitness(&mut self, problem: &ProblemDto) {
-        self.fitness = new_score(&problem, &self.placements).0;
+        self.fitness = new_score(problem, &self.placements).0;
     }
 
     fn mutate(&mut self, problem: &ProblemDto) {

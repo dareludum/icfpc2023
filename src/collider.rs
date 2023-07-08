@@ -92,21 +92,17 @@ impl<'sol, 'pro> Collider<'sol, 'pro> {
             }
 
             let (center, radius) = get_circle(self.placements, self.problem, obstacle);
-            if crate::geometry::line_circle_intersection(
+            !crate::geometry::line_circle_intersection(
                 attendee_location,
                 &musician_location,
                 &center,
                 radius,
-            ) {
-                false
-            } else {
-                true
-            }
+            )
         };
 
         let mut visitor = RayIntersectionsVisitor::new(&ray, std::f32::INFINITY, &mut callback);
-        let collided = !self.qbvh.traverse_depth_first(&mut visitor);
-        collided
+        
+        !self.qbvh.traverse_depth_first(&mut visitor)
     }
 }
 
