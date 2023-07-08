@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{cmp, collections::HashSet};
 
 use log::debug;
 use rand::Rng;
@@ -6,21 +6,24 @@ use rand::Rng;
 use crate::{
     common::calculate_invalid_positions,
     dto::{Point2D, ProblemDto, SolutionDto},
-    scorer::score,
+    new_scorer::new_score,
 };
 
 use super::Solver;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Genetic {
     pub population_size: u32,
     problem: ProblemDto,
     population: Vec<Individual>,
     max_generations: u32,
     generation: u32,
+    mutation_rate: f32,
+    elitism_rate: f32,
+    crossover_rate: f32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 struct Individual {
     fitness: i64,
     placements: Vec<Point2D>,
@@ -34,6 +37,9 @@ impl Default for Genetic {
             population: Vec::new(),
             max_generations: 10,
             generation: 0,
+            mutation_rate: 0.5,
+            elitism_rate: 0.05,
+            crossover_rate: 0.33,
         }
     }
 }
@@ -50,6 +56,8 @@ impl Solver for Genetic {
             self.population[0].placements = solution.placements;
             self.population[0].recalculate_fitness(&problem.data);
         }
+
+        self.population.sort_by_key(|x| cmp::Reverse(x.fitness));
     }
 
     fn solve_step(&mut self) -> (SolutionDto, bool) {
@@ -63,7 +71,7 @@ impl Solver for Genetic {
         self.generation += 1;
         let is_finished = self.generation >= self.max_generations;
 
-        let best_population = self.population.iter().max_by_key(|i| i.fitness).unwrap();
+        let best_population = self.population.first().expect("population is empty");
         debug!("Best fitness: {}", best_population.fitness);
 
         let solution = SolutionDto {
@@ -96,7 +104,7 @@ impl Genetic {
             }
 
             let individual = Individual {
-                fitness: score(&problem, &placements).0,
+                fitness: new_score(&problem, &placements).0,
                 placements,
             };
 
@@ -143,17 +151,27 @@ impl Genetic {
         let mut rng = rand::thread_rng();
         let mut new_population = Vec::new();
 
-        for _ in 0..self.population_size {
+        // Elitism: keep x% of the best individuals
+        let elitism_size = (self.population_size as f32 * self.elitism_rate) as usize;
+        for i in 0..elitism_size {
+            new_population.push(self.population[i].clone());
+            debug!(
+                "Added elite individual with fitness {} to the new population",
+                self.population[i].fitness
+            );
+        }
+
+        for _ in 0..self.population_size as usize - elitism_size {
             let parent1 = Self::roulette_wheel_selection(&self.population);
             let parent2 = Self::roulette_wheel_selection(&self.population);
 
             let (mut child1, mut child2) = self.swap_crossover(parent1, parent2);
 
-            if rng.gen_range(0.0..1.0) < 0.5 {
+            if rng.gen_range(0.0..1.0) < self.mutation_rate {
                 child1.mutate(&self.problem);
             }
 
-            if rng.gen_range(0.0..1.0) < 0.5 {
+            if rng.gen_range(0.0..1.0) < self.mutation_rate {
                 child2.mutate(&self.problem);
             }
 
@@ -165,6 +183,8 @@ impl Genetic {
         }
 
         self.population = new_population;
+        self.population.sort_by_key(|x| cmp::Reverse(x.fitness));
+
         debug!(
             "Finished selection, population size: {}",
             self.population.len()
@@ -183,8 +203,8 @@ impl Genetic {
         let mut child1 = parent1.clone();
         let mut child2 = parent2.clone();
 
-        // swap 33% of the positions
-        for _ in 0..size / 3 {
+        // swap x% of the positions
+        for _ in 0..(size as f32 * self.crossover_rate) as usize {
             // Select a random musician
             let musician = rng.gen_range(0..size - 1);
 
@@ -259,7 +279,7 @@ fn get_random_coords(problem: &ProblemDto) -> Point2D {
 
 impl Individual {
     fn recalculate_fitness(&mut self, problem: &ProblemDto) {
-        self.fitness = score(&problem, &self.placements).0;
+        self.fitness = new_score(&problem, &self.placements).0;
     }
 
     fn mutate(&mut self, problem: &ProblemDto) {
