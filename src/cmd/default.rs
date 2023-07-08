@@ -36,13 +36,13 @@ fn solve_problem(
             solution.score.0
         );
 
-        if solution.score.0 < 0 {
-            println!("I am not in a mood to save this");
-            continue;
-        }
-
         // write the solution
         solution.save(full_solver_name.clone(), &problem, cur_solver_dir)?;
+
+        if solution.score.0 < 0 {
+            println!("Saved, but won't compare with best");
+            continue;
+        }
 
         // compare with the best solution
         let best_sol = match Solution::load(best_dir, &problem) {
@@ -106,7 +106,7 @@ pub fn default_command(
 ) -> Result<(), std::io::Error> {
     match (problem_paths, solvers) {
         ([problem_path], None) => {
-            gui_main(&std::path::PathBuf::from(problem_path), "greedy");
+            gui_main(&std::path::PathBuf::from(problem_path), "expand");
             Ok(())
         }
         (paths, Some(solvers)) => solve(&solvers, paths),
