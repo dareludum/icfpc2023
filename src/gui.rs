@@ -5,9 +5,9 @@ use raylib::prelude::*;
 
 use crate::{
     common::Grid,
-    dto::{Attendee, Instrument, SolutionDto},
+    dto::{Attendee, Instrument},
     scorer::ImpactMap,
-    solvers::{create_solver, Problem, Score, Solution},
+    solvers::{create_solver, Problem, Solution, Solver},
 };
 
 struct ColorGradient {
@@ -94,6 +94,17 @@ impl ColorGradient {
     }
 }
 
+#[allow(clippy::borrowed_box)]
+fn save_solution(solution: &Solution, solver: &Box<dyn Solver>, problem: &Problem) {
+    solution
+        .save(
+            solver.name().to_owned(),
+            problem,
+            &PathBuf::from("./solutions/current/gui"),
+        )
+        .expect("Failed to write solution");
+}
+
 pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
     dbg!(problem_path);
     let problem = Problem::load(problem_path).expect("Failed to read the problem file");
@@ -147,12 +158,13 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
 
     let max_instrument = data.musicians.iter().map(|i| i.0).max().unwrap();
 
-    let mut solution: Option<SolutionDto> = None;
-    let mut score = None;
+    let mut solution: Solution = Solution::default();
     let mut auto_step = false;
-    let mut auto_score = false;
     let mut done = false;
     let mut selected_instrument = None;
+    let mut selected_musician = None;
+    let mut dragged_musician = None;
+    let mut did_drag_musician = false;
     let mut taste_gradient = None;
     let mut drag_start = None;
     let mut viewport_offset = Vector2::zero();
@@ -161,7 +173,35 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
 
     while !rl.window_should_close() {
         // ===== HIT TEST =====
-        // TODO
+        #[derive(Debug)]
+        enum HitTestResult {
+            Empty,
+            Musician(usize),
+        }
+        let mouse_pos_logical = (rl.get_mouse_position()
+            - viewport_offset
+            - Vector2::new(MARGIN as f32, MARGIN as f32))
+        .scale_by(1.0 / (ratio * viewport_zoom));
+
+        let mut hit_test_result = HitTestResult::Empty;
+        let mut musicians_in_range = solution
+            .data
+            .placements
+            .iter()
+            .enumerate()
+            .filter(|(_idx, pos)| !pos.x.is_nan())
+            .map(|(idx, pos)| {
+                let x = mouse_pos_logical.x - pos.x;
+                let y = mouse_pos_logical.y - pos.y;
+                let dist2 = x * x + y * y;
+                (idx, dist2)
+            })
+            .filter(|(_idx, dist2)| *dist2 <= 100.0)
+            .collect::<Vec<_>>();
+        musicians_in_range.sort_by(|(_idx0, dist0), (_idx1, dist1)| dist0.total_cmp(dist1));
+        if !musicians_in_range.is_empty() {
+            hit_test_result = HitTestResult::Musician(musicians_in_range[0].0);
+        }
 
         // ===== INTERACTION =====
 
@@ -173,14 +213,6 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
                         auto_step = !auto_step;
                     }
                     do_step = true;
-                }
-                KeyboardKey::KEY_S => {
-                    if rl.is_key_down(KeyboardKey::KEY_LEFT_SHIFT) {
-                        auto_score = !auto_score;
-                    }
-                    if let Some(solution) = solution.as_ref() {
-                        score = Some(crate::scorer::score(data, &solution.placements));
-                    }
                 }
                 KeyboardKey::KEY_Q => {
                     if selected_instrument == Some(0) {
@@ -216,6 +248,25 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
             }
         }
 
+        if rl.is_mouse_button_pressed(MouseButton::MOUSE_LEFT_BUTTON) {
+            if let HitTestResult::Musician(idx) = hit_test_result {
+                if let Some(selected_idx) = selected_musician {
+                    solution.data.placements.swap(idx, selected_idx);
+                    solution.score = crate::scorer::score(data, &solution.data.placements);
+                    save_solution(&solution, &solver, &problem);
+                    selected_musician = None;
+                } else {
+                    selected_musician = Some(idx);
+                    dragged_musician = Some((idx, mouse_pos_logical));
+                }
+            }
+        } else if rl.is_mouse_button_released(MouseButton::MOUSE_LEFT_BUTTON) {
+            dragged_musician = None;
+            if did_drag_musician {
+                selected_musician = None;
+                did_drag_musician = false;
+            }
+        }
         if rl.is_mouse_button_pressed(MouseButton::MOUSE_MIDDLE_BUTTON) {
             drag_start = Some(rl.get_mouse_position());
         } else if rl.is_mouse_button_released(MouseButton::MOUSE_MIDDLE_BUTTON) {
@@ -238,25 +289,24 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
             viewport_offset -= offset;
             drag_start = Some(new_mouse_pos);
         }
+        if let Some((idx_pos, start)) = dragged_musician {
+            if start != mouse_pos_logical {
+                let offset = start - mouse_pos_logical;
+                let pos = &mut solution.data.placements[idx_pos];
+                pos.x -= offset.x;
+                pos.y -= offset.y;
+                solution.score = crate::scorer::score(data, &solution.data.placements);
+                save_solution(&solution, &solver, &problem);
+                dragged_musician = Some((idx_pos, mouse_pos_logical));
+                did_drag_musician = true;
+            }
+        }
 
         if do_step && !done {
             let (s, d) = solver.solve_step();
-            if auto_score {
-                score = Some(crate::scorer::score(data, &s.placements));
-            } else {
-                score = None;
-            }
-            Solution {
-                data: s.clone(),
-                score: score.unwrap_or(Score(0)),
-            }
-            .save(
-                solver.name().to_owned(),
-                &problem,
-                &PathBuf::from("./solutions/current/gui"),
-            )
-            .expect("Failed to write solution");
-            solution = Some(s);
+            solution.data = s;
+            solution.score = crate::scorer::score(data, &solution.data.placements);
+            save_solution(&solution, &solver, &problem);
             done = d;
         }
 
@@ -312,38 +362,36 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
             );
         }
 
-        if let Some(solution) = solution.as_ref() {
-            for p in &solution.placements {
-                if !p.x.is_nan() {
-                    d.draw_circle(
-                        transform_x(p.x),
-                        transform_y(p.y),
-                        10.0 * zoomed_ratio,
-                        Color::BLUE,
-                    );
-                }
+        for p in &solution.data.placements {
+            if !p.x.is_nan() {
+                d.draw_circle(
+                    transform_x(p.x),
+                    transform_y(p.y),
+                    10.0 * zoomed_ratio,
+                    Color::BLUE,
+                );
             }
-            for p in &solution.placements {
-                if !p.x.is_nan() {
-                    d.draw_circle(
-                        transform_x(p.x),
-                        transform_y(p.y),
-                        5.0 * zoomed_ratio,
-                        Color::BLACK,
-                    );
-                }
+        }
+        for p in &solution.data.placements {
+            if !p.x.is_nan() {
+                d.draw_circle(
+                    transform_x(p.x),
+                    transform_y(p.y),
+                    5.0 * zoomed_ratio,
+                    Color::BLACK,
+                );
             }
-            if viewport_zoom * ratio >= 1.0 {
-                for (idx, p) in solution.placements.iter().enumerate() {
-                    if !p.x.is_nan() {
-                        d.draw_text(
-                            &data.musicians[idx].0.to_string(),
-                            transform_x(p.x) - 2,
-                            transform_y(p.y) - 4,
-                            10,
-                            Color::WHITE,
-                        )
-                    }
+        }
+        if viewport_zoom * ratio >= 1.0 {
+            for (idx, p) in solution.data.placements.iter().enumerate() {
+                if !p.x.is_nan() {
+                    d.draw_text(
+                        &data.musicians[idx].0.to_string(),
+                        transform_x(p.x) - 2,
+                        transform_y(p.y) - 4,
+                        10,
+                        Color::WHITE,
+                    )
                 }
             }
         }
@@ -383,19 +431,10 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
             "  - Zoom: Mouse wheel".to_owned(),
             "  - Solve step: Space".to_owned(),
             "  - Solve (auto): Shift+Space".to_owned(),
-            "  - Calc score: S".to_owned(),
-            "  - Auto calc score: Shift+S".to_owned(),
             "  - Prev/Next instrument: Q/W".to_owned(),
             "".to_owned(),
-            format!("Done: {}", if done { "true" } else { "false" }),
-            format!(
-                "Current score: {}",
-                if score.is_none() {
-                    "<not calculated>".to_owned()
-                } else {
-                    score.unwrap().0.to_string()
-                }
-            ),
+            format!("Done: {}", done),
+            format!("Current score: {}", solution.score.0),
             format!(
                 "Focused instrument: {}",
                 if selected_instrument.is_none() {
