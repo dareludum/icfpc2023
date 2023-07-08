@@ -112,7 +112,9 @@ fn main() -> std::io::Result<()> {
             let problem = Problem::load(Path::new(problem))?;
             let solution = SolutionDto::load(Path::new(solution))?;
             let score = scorer::score(&problem.data, &solution.placements);
+            let fast_score = new_scorer::new_score(&problem.data, &solution.placements);
             println!("score: {}", score.0);
+            println!("fast score: {}", fast_score.0);
             Ok(())
         }
         _ => {

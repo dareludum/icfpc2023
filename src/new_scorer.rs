@@ -70,7 +70,7 @@ pub fn new_score(problem: &ProblemDto, placements: &[Point2D]) -> Score {
                     let musician_location = placements[musician_i];
                     let distance_sq = (attendee.x - musician_location.x).powi(2)
                         + (attendee.y - musician_location.y).powi(2);
-                    let impact = ((1_000_000f32 + taste) / distance_sq).ceil();
+                    let impact = ((1_000_000f32 * taste) / distance_sq).ceil();
                     let score = if has_pillars {
                         let closeness = musicians_closeness[musician_i];
                         (impact * closeness).ceil() as i64
