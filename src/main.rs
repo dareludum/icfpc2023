@@ -39,7 +39,7 @@ fn get_problem_paths(args: &Args, force_batch: bool) -> Result<Vec<PathBuf>, std
 }
 
 fn get_all_problem_paths() -> Result<Vec<PathBuf>, std::io::Error> {
-    let paths: Vec<PathBuf> = std::fs::read_dir("./problems")?
+    let mut paths: Vec<PathBuf> = std::fs::read_dir("./problems")?
         .collect::<Result<Vec<DirEntry>, _>>()?
         .iter()
         .filter_map(|f| {
@@ -51,6 +51,7 @@ fn get_all_problem_paths() -> Result<Vec<PathBuf>, std::io::Error> {
             }
         })
         .collect();
+    paths.sort();
 
     Ok(paths)
 }
@@ -92,6 +93,8 @@ fn main() -> std::io::Result<()> {
     let solvers = get_solvers(&args);
     let log_level = args.log_level.clone().unwrap_or_else(|| "info".to_string());
     let gui = args.gui;
+    // This is not the default because every solver is already parallel
+    let parallel = args.parallel;
 
     env_logger::Builder::from_env(Env::default().default_filter_or(log_level)).init();
 
@@ -127,7 +130,7 @@ fn main() -> std::io::Result<()> {
         }
         _ => {
             let problem_paths = get_problem_paths(&args, false)?;
-            default_command(&problem_paths, solvers, gui)
+            default_command(&problem_paths, solvers, gui, parallel)
         }
     }
 }

@@ -18,6 +18,8 @@ pub struct Args {
     pub log_level: Option<String>,
     #[clap(short, long)]
     pub gui: bool,
+    #[clap(short, long)]
+    pub parallel: bool,
 }
 
 #[derive(Subcommand, Debug)]

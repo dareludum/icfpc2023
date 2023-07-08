@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
+use rayon::prelude::{ParallelBridge, ParallelIterator};
 
 use crate::{
     gui::gui_main,
@@ -86,7 +86,7 @@ fn solve_problem(
     Ok(())
 }
 
-fn solve(solvers: &[String], problem_paths: &[PathBuf]) -> std::io::Result<()> {
+fn solve(solvers: &[String], problem_paths: &[PathBuf], parallel: bool) -> std::io::Result<()> {
     let base_solution_dir = PathBuf::from("./solutions/");
 
     let solvers: Vec<_> = solvers
@@ -94,16 +94,26 @@ fn solve(solvers: &[String], problem_paths: &[PathBuf]) -> std::io::Result<()> {
         .map(|solver_name| create_solver(solver_name))
         .collect();
 
-    problem_paths
-        .par_iter()
-        .map(|problem_path| solve_problem(&solvers, &base_solution_dir, problem_path))
-        .collect::<std::io::Result<()>>()
+    if parallel {
+        problem_paths
+            .iter()
+            .par_bridge()
+            .map(|problem_path| solve_problem(&solvers, &base_solution_dir, problem_path))
+            .collect::<std::io::Result<()>>()
+    } else {
+        #[allow(clippy::map_collect_result_unit)]
+        problem_paths
+            .iter()
+            .map(|problem_path| solve_problem(&solvers, &base_solution_dir, problem_path))
+            .collect::<std::io::Result<()>>()
+    }
 }
 
 pub fn default_command(
     problem_paths: &[PathBuf],
     solvers: Option<Vec<String>>,
     gui: bool,
+    parallel: bool,
 ) -> Result<(), std::io::Error> {
     match (problem_paths, solvers, gui) {
         ([problem_path], None, _) => {
@@ -119,7 +129,7 @@ pub fn default_command(
             gui_main(&std::path::PathBuf::from(problem_path), solver);
             Ok(())
         }
-        (paths, Some(solvers), false) => solve(&solvers, paths),
+        (paths, Some(solvers), false) => solve(&solvers, paths, parallel),
         (_, Some(_), true) => panic!("GUI mode is not supported with multiple solvers"),
         (_, None, _) => panic!("No problem paths and solvers provided"),
     }
