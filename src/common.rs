@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use log::debug;
+use rand::Rng;
 
 use crate::{
     dto::{Point2D, ProblemDto},
@@ -145,4 +146,37 @@ pub fn calculate_invalid_positions(positions: &[Point2D], problem: &ProblemDto) 
         }
     }
     result
+}
+
+pub fn generate_random_placement(problem: &ProblemDto, placements: &[Point2D]) -> Point2D {
+    let mut placement = get_random_coords(problem);
+    let mut correct_placed = false;
+
+    while !correct_placed {
+        correct_placed = true;
+
+        for other_placement in placements {
+            if placement.distance(other_placement) < 10.0 {
+                placement = get_random_coords(problem);
+                correct_placed = false;
+                break;
+            }
+        }
+    }
+    placement
+}
+
+pub fn get_random_coords(problem: &ProblemDto) -> Point2D {
+    let mut rng = rand::thread_rng();
+
+    Point2D {
+        x: rng.gen_range(
+            (problem.stage_bottom_left.0 + 10.0)
+                ..problem.stage_bottom_left.0 + problem.stage_width - 10.0,
+        ),
+        y: rng.gen_range(
+            (problem.stage_bottom_left.1 + 10.0)
+                ..problem.stage_bottom_left.1 + problem.stage_height - 10.0,
+        ),
+    }
 }

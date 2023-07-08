@@ -4,7 +4,7 @@ use log::debug;
 use rand::Rng;
 
 use crate::{
-    common::calculate_invalid_positions,
+    common::{calculate_invalid_positions, generate_random_placement, get_random_coords},
     dto::{Point2D, ProblemDto, SolutionDto},
     new_scorer::new_score,
 };
@@ -93,11 +93,9 @@ impl Genetic {
         for _ in 0..population_size {
             let mut placements = Vec::new();
             placements.push(get_random_coords(problem));
-            let mut placed = 1;
 
             for _ in 0..problem.musicians.len() {
-                placements.push(generate_random_placement(problem, placed, &placements));
-                placed += 1;
+                placements.push(generate_random_placement(problem, &placements));
             }
 
             let individual = Individual {
@@ -222,51 +220,11 @@ fn random_repair_invalid_positions(problem: &ProblemDto, placements: &mut [Point
 
     while !invalid_positions.is_empty() {
         for invalid_position in invalid_positions.iter() {
-            let placement =
-                generate_random_placement(problem, *invalid_position as i32, placements);
+            let placement = generate_random_placement(problem, placements);
             placements[*invalid_position] = placement;
         }
 
         invalid_positions = calculate_invalid_positions(placements, problem);
-    }
-}
-
-fn generate_random_placement(problem: &ProblemDto, placed: i32, placements: &[Point2D]) -> Point2D {
-    let mut placement = get_random_coords(problem);
-    let mut correct_placed = false;
-
-    while !correct_placed {
-        correct_placed = true;
-
-        for i in 0..placed {
-            let other_placement = placements[i as usize];
-
-            if distance(&placement, &other_placement) < 10.0 {
-                placement = get_random_coords(problem);
-                correct_placed = false;
-                break;
-            }
-        }
-    }
-    placement
-}
-
-fn distance(a: &Point2D, b: &Point2D) -> f64 {
-    a.as_vec().metric_distance(&b.as_vec()) as f64
-}
-
-fn get_random_coords(problem: &ProblemDto) -> Point2D {
-    let mut rng = rand::thread_rng();
-
-    Point2D {
-        x: rng.gen_range(
-            (problem.stage_bottom_left.0 + 10.0)
-                ..problem.stage_bottom_left.0 + problem.stage_width - 10.0,
-        ),
-        y: rng.gen_range(
-            (problem.stage_bottom_left.1 + 10.0)
-                ..problem.stage_bottom_left.1 + problem.stage_height - 10.0,
-        ),
     }
 }
 
@@ -284,12 +242,10 @@ impl Individual {
             placement_set.insert(*placement);
         }
 
-        let mut placement =
-            generate_random_placement(problem, self.placements.len() as i32, &self.placements);
+        let mut placement = generate_random_placement(problem, &self.placements);
 
         while placement_set.contains(&placement) {
-            placement =
-                generate_random_placement(problem, self.placements.len() as i32, &self.placements);
+            placement = generate_random_placement(problem, &self.placements);
         }
 
         self.placements[musician] = placement;

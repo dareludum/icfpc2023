@@ -88,6 +88,10 @@ impl Point2D {
     pub fn as_vec(&self) -> Vector2<f32> {
         self.into()
     }
+
+    pub fn distance(&self, other: &Point2D) -> f32 {
+        self.as_vec().metric_distance(&other.as_vec())
+    }
 }
 
 impl PillarDto {
