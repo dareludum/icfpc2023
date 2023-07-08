@@ -4,6 +4,7 @@ use log::debug;
 use rand::Rng;
 
 use crate::{
+    common::calculate_invalid_positions,
     dto::{Point2D, ProblemDto, SolutionDto},
     scorer::score,
 };
@@ -28,7 +29,7 @@ struct Individual {
 impl Default for Genetic {
     fn default() -> Self {
         Self {
-            population_size: 100,
+            population_size: 20,
             problem: ProblemDto::default(),
             population: Vec::new(),
             max_generations: 10,
@@ -58,7 +59,6 @@ impl Solver for Genetic {
         );
 
         self.selection();
-        // main loop here
 
         self.generation += 1;
         let is_finished = self.generation >= self.max_generations;
@@ -117,6 +117,12 @@ impl Genetic {
         // Calculate the total fitness of the population
         let total_fitness: i64 = population.iter().map(|individual| individual.fitness).sum();
 
+        if total_fitness <= 0 {
+            // In case due to floating point underflow or similar we didn't select an individual, return the last one
+            debug!("Roulette wheel selection failed, returning last individual");
+            return &population[population.len() - 1];
+        }
+
         // Select a random point on the wheel
         let mut selection_point: i64 = rng.gen_range(0.0..total_fitness as f64) as i64;
 
@@ -159,93 +165,10 @@ impl Genetic {
         }
 
         self.population = new_population;
-    }
-
-    fn crossover_and_repair(
-        &self,
-        parent1: &Individual,
-        parent2: &Individual,
-    ) -> (Individual, Individual) {
-        let mut rng = rand::thread_rng();
-        let size = parent1.placements.len();
-
-        let mut child1 = Individual {
-            placements: vec![Point2D { x: 0.0, y: 0.0 }; size],
-            fitness: 0,
-        };
-        let mut child2 = Individual {
-            placements: vec![Point2D { x: 0.0, y: 0.0 }; size],
-            fitness: 0,
-        };
-
-        // Create children by randomly selecting genes from each parent
-        for i in 0..size {
-            if rng.gen() {
-                // generates a random boolean
-                child1.placements[i] = parent1.placements[i].clone();
-                child2.placements[i] = parent2.placements[i].clone();
-            } else {
-                child1.placements[i] = parent2.placements[i].clone();
-                child2.placements[i] = parent1.placements[i].clone();
-            }
-        }
-
-        // self.repair(&mut child1);
-        // self.repair(&mut child2);
-
-        (child1, child2)
-    }
-
-    fn crossover(&self, parent1: &Individual, parent2: &Individual) -> (Individual, Individual) {
-        let mut rng = rand::thread_rng();
-        let size = parent1.placements.len();
-
-        // Generate two random crossover points
-        let crossover_point1 = rng.gen_range(0..size);
-        let crossover_point2 = rng.gen_range(0..size);
-
-        // Ensure crossover_point1 is less than crossover_point2
-        let (crossover_point1, crossover_point2) = if crossover_point1 > crossover_point2 {
-            (crossover_point2, crossover_point1)
-        } else {
-            (crossover_point1, crossover_point2)
-        };
-
-        // Create children with musicians vectors of the same size as parents
-        let mut child1 = Individual {
-            placements: vec![Point2D { x: 0.0, y: 0.0 }; size],
-            fitness: 0,
-        };
-        let mut child2 = Individual {
-            placements: vec![Point2D { x: 0.0, y: 0.0 }; size],
-            fitness: 0,
-        };
-
-        // Copy segments between crossover points from parents to children
-        child1.placements[crossover_point1..crossover_point2]
-            .clone_from_slice(&parent1.placements[crossover_point1..crossover_point2]);
-        child2.placements[crossover_point1..crossover_point2]
-            .clone_from_slice(&parent2.placements[crossover_point1..crossover_point2]);
-
-        let mut parent2_remaining = parent2.placements.to_vec();
-        let mut parent1_remaining = parent1.placements.to_vec();
-
-        parent2_remaining.retain(|item| !child1.placements.contains(item));
-        parent1_remaining.retain(|item| !child2.placements.contains(item));
-
-        // Fill the remaining spots in the children
-        for i in 0..size {
-            if i < crossover_point1 || i >= crossover_point2 {
-                child1.placements[i] = parent2_remaining.pop().unwrap();
-                child2.placements[i] = parent1_remaining.pop().unwrap();
-            }
-        }
-
         debug!(
-            "Crossover completed: {}, {}",
-            crossover_point1, crossover_point2
+            "Finished selection, population size: {}",
+            self.population.len()
         );
-        (child1, child2)
     }
 
     fn swap_crossover(
@@ -260,14 +183,34 @@ impl Genetic {
         let mut child1 = parent1.clone();
         let mut child2 = parent2.clone();
 
-        // Select a random musician
-        // let musician = rng.gen_range(0..size);
+        // swap 33% of the positions
+        for _ in 0..size / 3 {
+            // Select a random musician
+            let musician = rng.gen_range(0..size - 1);
 
-        // Swap the positions of this musician in the children
-        // child1.placements[musician] = parent2.placements[musician].clone();
-        // child2.placements[musician] = parent1.placements[musician].clone();
+            // Swap the positions of this musician in the children
+            child1.placements[musician] = parent2.placements[musician].clone();
+            child2.placements[musician] = parent1.placements[musician].clone();
+        }
+
+        random_repair_invalid_positions(&self.problem, &mut child1.placements);
+        random_repair_invalid_positions(&self.problem, &mut child2.placements);
 
         (child1, child2)
+    }
+}
+
+fn random_repair_invalid_positions(problem: &ProblemDto, placements: &mut Vec<Point2D>) {
+    let mut invalid_positions = calculate_invalid_positions(&placements, problem);
+
+    while !invalid_positions.is_empty() {
+        for invalid_position in invalid_positions.iter() {
+            let placement =
+                generate_random_placement(problem, *invalid_position as i32, &placements);
+            placements[*invalid_position] = placement;
+        }
+
+        invalid_positions = calculate_invalid_positions(&placements, problem);
     }
 }
 
@@ -286,10 +229,6 @@ fn generate_random_placement(
             let other_placement = placements[i as usize];
 
             if distance(&placement, &other_placement) < 10.0 {
-                // debug!(
-                //     "Musicians too close, retrying, placement: {:?} other_placement: {:?}",
-                //     placement, other_placement
-                // );
                 placement = get_random_coords(&problem);
                 correct_placed = false;
                 break;
