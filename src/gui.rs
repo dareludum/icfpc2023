@@ -1,11 +1,13 @@
+use std::path::PathBuf;
+
 use colorgrad::Gradient;
 use raylib::prelude::*;
 
 use crate::{
     common::Grid,
-    dto::{Attendee, Instrument},
+    dto::{Attendee, Instrument, SolutionDto},
     scorer::ImpactMap,
-    solvers::{create_solver, Problem},
+    solvers::{create_solver, Problem, Score, Solution},
 };
 
 struct ColorGradient {
@@ -142,7 +144,10 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
 
     let max_instrument = data.musicians.iter().map(|i| i.0).max().unwrap();
 
-    let mut solution = None;
+    let mut solution: Option<SolutionDto> = None;
+    let mut score = None;
+    let mut auto_step = false;
+    let mut auto_score = false;
     let mut done = false;
     let mut selected_instrument = None;
     let mut taste_gradient = None;
@@ -152,18 +157,23 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
         // TODO
 
         // ===== INTERACTION =====
+        let mut do_step = auto_step;
         if let Some(k) = rl.get_key_pressed() {
             match k {
-                KeyboardKey::KEY_SPACE => loop {
-                    if !done {
-                        let (s, d) = solver.solve_step();
-                        solution = Some(s);
-                        done = d;
+                KeyboardKey::KEY_SPACE => {
+                    if rl.is_key_down(KeyboardKey::KEY_LEFT_SHIFT) {
+                        auto_step = !auto_step;
                     }
-                    if !rl.is_key_down(KeyboardKey::KEY_LEFT_CONTROL) || done {
-                        break;
+                    do_step = true;
+                }
+                KeyboardKey::KEY_S => {
+                    if rl.is_key_down(KeyboardKey::KEY_LEFT_SHIFT) {
+                        auto_score = !auto_score;
                     }
-                },
+                    if let Some(solution) = solution.as_ref() {
+                        score = Some(crate::scorer::score(&data, &solution.placements));
+                    }
+                }
                 KeyboardKey::KEY_Q => {
                     if selected_instrument == Some(0) {
                         selected_instrument = None;
@@ -195,6 +205,31 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
                     }
                 }
                 _ => {}
+            }
+        }
+
+        // ===== HANDLING =====
+
+        if do_step {
+            if !done {
+                let (s, d) = solver.solve_step();
+                if auto_score {
+                    score = Some(crate::scorer::score(&data, &s.placements));
+                } else {
+                    score = None;
+                }
+                Solution {
+                    data: s.clone(),
+                    score: score.unwrap_or(Score(0)),
+                }
+                .save(
+                    solver.name().to_owned(),
+                    &problem,
+                    &PathBuf::from("./solutions/current/gui"),
+                )
+                .expect("Failed to write solution");
+                solution = Some(s);
+                done = d;
             }
         }
 
@@ -275,19 +310,37 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
 
         // Right side
 
-        d.draw_text(
-            &format!(
+        let lines = &[
+            format!(
+                "Done: {}",
+                if done { "true" } else { "false <press Space>" }
+            ),
+            format!(
+                "Current score: {}",
+                if score.is_none() {
+                    "<press [Shift+]S>".to_owned()
+                } else {
+                    score.unwrap().0.to_string()
+                }
+            ),
+            format!(
                 "Focused instrument: {}",
                 if selected_instrument.is_none() {
-                    "<none>".to_owned()
+                    "<press Q/W>".to_owned()
                 } else {
                     selected_instrument.unwrap().to_string()
                 }
             ),
-            WIDTH + MARGIN * 2,
-            MARGIN,
-            12,
-            Color::BLACK,
-        );
+        ];
+
+        for (idx, line) in lines.into_iter().enumerate() {
+            d.draw_text(
+                line,
+                WIDTH + MARGIN * 2,
+                MARGIN + 12 * idx as i32,
+                12,
+                Color::BLACK,
+            );
+        }
     }
 }

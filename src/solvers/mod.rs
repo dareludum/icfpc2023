@@ -1,4 +1,5 @@
 mod greedy;
+mod expand;
 
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
@@ -15,6 +16,7 @@ use crate::{
     scorer::score,
 };
 
+use self::expand::Expand;
 use self::greedy::Greedy;
 
 #[derive(Clone)]
@@ -37,7 +39,7 @@ impl Problem {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Default, Clone, Copy)]
 pub struct Score(pub i64);
 
 pub struct Solution {
@@ -111,7 +113,7 @@ pub trait Solver: DynClone + Sync + Send {
                 continue;
             }
             return Solution {
-                score: score(&problem.data, &solution),
+                score: score(&problem.data, &solution.placements),
                 data: solution,
             };
         }
@@ -128,7 +130,7 @@ pub trait Solver: DynClone + Sync + Send {
 
 dyn_clone::clone_trait_object!(Solver);
 
-pub const SOLVERS: &[&str] = &["greedy"];
+pub const SOLVERS: &[&str] = &["expand", "greedy"];
 
 pub fn create_solver(solver_name: &str) -> Box<dyn Solver> {
     // TODO: Copy-paste processors support from previous year if needed
@@ -137,6 +139,7 @@ pub fn create_solver(solver_name: &str) -> Box<dyn Solver> {
 
 fn create_individual_solver(solver_name: &str) -> Box<dyn Solver> {
     match solver_name {
+        "expand" => Box::<Expand>::default(),
         "greedy" => Box::<Greedy>::default(),
         n => panic!("Unknown solver `{}`", n),
     }

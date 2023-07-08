@@ -5,7 +5,7 @@ use rayon::prelude::*;
 
 use crate::{
     common::Grid,
-    dto::{Attendee, Instrument, Point2D, ProblemDto, SolutionDto},
+    dto::{Attendee, Instrument, Point2D, ProblemDto},
     solvers::Score,
 };
 
@@ -177,11 +177,11 @@ pub fn score_instrument(
     Score(score)
 }
 
-pub fn score(problem: &ProblemDto, solution: &SolutionDto) -> Score {
+pub fn score(problem: &ProblemDto, placements: &[Point2D]) -> Score {
     let mut score = 0;
 
     for attendee in &problem.attendees {
-        score += calculate_attendee_happiness(attendee, &problem.musicians, &solution.placements);
+        score += calculate_attendee_happiness(attendee, &problem.musicians, placements);
     }
 
     Score(score)
