@@ -67,4 +67,24 @@ impl Grid {
 
         Grid { positions }
     }
+
+    pub fn recalculate_taken(&mut self, placements: &[Point2D]) {
+        for pos in &mut self.positions {
+            pos.taken = false;
+        }
+
+        for placement in placements {
+            if placement.x.is_nan() {
+                continue;
+            }
+            for pos in self.positions.iter_mut() {
+                let x = pos.p.x - placement.x;
+                let y = pos.p.y - placement.y;
+                let dist = (x * x + y * y).sqrt();
+                if dist <= 10.0 {
+                    pos.taken = true;
+                }
+            }
+        }
+    }
 }
