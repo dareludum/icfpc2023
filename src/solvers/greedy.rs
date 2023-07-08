@@ -4,7 +4,7 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use rayon::prelude::*;
 
 use crate::{
-    common::Grid,
+    common::{distance2, Grid},
     dto::{Instrument, Point2D, ProblemDto, SolutionDto},
     scorer::{ImpactMap, PillarBlockageMap},
 };
@@ -115,10 +115,8 @@ impl Solver for Greedy {
         // Remove the positions near the new musician
         let mut new_taken_positions = HashSet::new();
         for (idx, pos) in self.grid.positions.iter_mut().enumerate() {
-            let x = pos.p.x - best_pos.p.x;
-            let y = pos.p.y - best_pos.p.y;
-            let dist = (x * x + y * y).sqrt();
-            if dist <= 10.0 {
+            let dist2 = distance2(pos, &best_pos);
+            if dist2 <= 100.0 {
                 pos.taken = true;
                 new_taken_positions.insert(idx);
             }
