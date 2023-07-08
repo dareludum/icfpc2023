@@ -20,15 +20,21 @@ pub struct Expand {
 }
 
 impl Solver for Expand {
-    fn name(&self) -> &'static str {
-        "expand"
+    fn name(&self) -> String {
+        "expand".to_owned()
     }
 
     fn get_grid(&self) -> Option<&Grid> {
         Some(&self.grid)
     }
 
-    fn initialize(&mut self, problem: &Problem) {
+    fn initialize(&mut self, problem: &Problem, solution: SolutionDto) {
+        // NOTE: This can be changed
+        assert!(
+            solution.placements.is_empty(),
+            "expand: must be the start of the chain"
+        );
+
         self.problem = problem.data.clone();
 
         self.grid = Grid::new(&self.problem);

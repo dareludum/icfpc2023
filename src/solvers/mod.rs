@@ -1,5 +1,7 @@
+mod chain;
 mod expand;
 mod greedy;
+mod shake;
 
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
@@ -16,10 +18,12 @@ use crate::{
     scorer::score,
 };
 
+use self::chain::Chain;
 use self::expand::Expand;
 use self::greedy::Greedy;
+use self::shake::Shake;
 
-#[derive(Clone)]
+#[derive(Default, Clone)]
 pub struct Problem {
     pub id: String,
     pub data: ProblemDto,
@@ -101,13 +105,13 @@ impl Solution {
 }
 
 pub trait Solver: DynClone + Sync + Send {
-    fn name(&self) -> &str;
+    fn name(&self) -> String;
 
-    fn initialize(&mut self, problem: &Problem);
+    fn initialize(&mut self, problem: &Problem, solution: SolutionDto);
     fn solve_step(&mut self) -> (SolutionDto, bool);
 
     fn solve(&mut self, problem: &Problem) -> Solution {
-        self.initialize(problem);
+        self.initialize(problem, SolutionDto::default());
         loop {
             let (solution, done) = self.solve_step();
             if !done {
@@ -134,14 +138,20 @@ dyn_clone::clone_trait_object!(Solver);
 pub const SOLVERS: &[&str] = &["expand", "greedy"];
 
 pub fn create_solver(solver_name: &str) -> Box<dyn Solver> {
-    // TODO: Copy-paste processors support from previous year if needed
-    create_individual_solver(solver_name)
+    if solver_name.contains('+') {
+        let mut solvers = solver_name.split('+').map(create_individual_solver);
+        let chain = Box::new(Chain::new(solvers.next().unwrap(), solvers.next().unwrap()));
+        solvers.fold(chain, |chain, next| Box::new(Chain::new(chain, next)))
+    } else {
+        create_individual_solver(solver_name)
+    }
 }
 
 fn create_individual_solver(solver_name: &str) -> Box<dyn Solver> {
     match solver_name {
         "expand" => Box::<Expand>::default(),
         "greedy" => Box::<Greedy>::default(),
+        "shake" => Box::<Shake>::default(),
         n => panic!("Unknown solver `{}`", n),
     }
 }
