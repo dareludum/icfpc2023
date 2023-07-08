@@ -1,4 +1,7 @@
-use std::{collections::HashSet, iter::repeat};
+use std::{
+    collections::{HashMap, HashSet},
+    iter::repeat,
+};
 
 use nalgebra::Vector2;
 use rayon::prelude::*;
@@ -25,6 +28,10 @@ fn calculate_closeness_factor(placement: Point2D, same_instrument_placements: &[
     let mut factor = 0.0f64;
 
     for other_placement in same_instrument_placements {
+        if placement == *other_placement {
+            continue;
+        }
+
         factor += 1.0
             / placement
                 .as_vec()
@@ -39,7 +46,7 @@ fn calculate_attendee_happiness(
     musicians: &[Instrument],
     placements: &[Point2D],
     pillars: &[PillarDto],
-    consider_closeness: bool,
+    closeness_factors: &[f64],
 ) -> i64 {
     let mut happiness = 0;
 
@@ -65,18 +72,10 @@ fn calculate_attendee_happiness(
             }
         }
 
-        let same_instrument_placements = musicians
-            .iter()
-            .enumerate()
-            .filter(|(j, instrument)| *j != i && **instrument == musicians[i])
-            .map(|(i, _)| placements[i])
-            .collect::<Vec<_>>();
-
         let impact = calculate_impact(attendee, &musicians[i], &placements[i]);
-        if consider_closeness {
-            let closeness_factor =
-                calculate_closeness_factor(placements[i], &same_instrument_placements);
-            happiness += (closeness_factor * impact as f64).ceil() as i64;
+
+        if closeness_factors.len() > 0 {
+            happiness += (closeness_factors[i] * impact as f64).ceil() as i64;
         } else {
             happiness += impact;
         }
@@ -199,7 +198,33 @@ mod tests {
     }
 }
 
+fn calculate_closeness_factors(musicians: &[Instrument], placements: &[Point2D]) -> Vec<f64> {
+    let mut closeness_factors = vec![];
+
+    let placements_by_instrument = musicians.iter().zip(placements.iter()).fold(
+        HashMap::new(),
+        |mut acc, (instrument, placement)| {
+            acc.entry(*instrument).or_insert(vec![]).push(*placement);
+            acc
+        },
+    );
+
+    for i in 0..musicians.len() {
+        let closeness_factor =
+            calculate_closeness_factor(placements[i], &placements_by_instrument[&musicians[i]]);
+        closeness_factors.push(closeness_factor);
+    }
+
+    closeness_factors
+}
 pub fn score(problem: &ProblemDto, placements: &[Point2D]) -> Score {
+    // if there are pillars then it is a task from spec v2
+    let closeness_factors = if problem.pillars.len() == 0 {
+        vec![]
+    } else {
+        calculate_closeness_factors(&problem.musicians, placements)
+    };
+
     Score(
         problem
             .attendees
@@ -210,7 +235,7 @@ pub fn score(problem: &ProblemDto, placements: &[Point2D]) -> Score {
                     &problem.musicians,
                     placements,
                     &problem.pillars,
-                    !problem.pillars.is_empty(), // This is because all new tasks have pillars
+                    &closeness_factors,
                 )
             })
             .sum(),
