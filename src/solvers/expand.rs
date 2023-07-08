@@ -1,16 +1,12 @@
-use std::collections::{BTreeMap, HashMap, HashSet};
-
 use priority_queue::PriorityQueue;
 use rand::seq::SliceRandom;
-use rayon::prelude::*;
 
 use crate::{
     common::Grid,
-    dto::{Instrument, Point2D, ProblemDto, SolutionDto},
-    scorer::ImpactMap,
+    dto::{Point2D, ProblemDto, SolutionDto},
 };
 
-use super::{Problem, Solver, Score};
+use super::{Problem, Score, Solver};
 
 #[derive(Default, Clone)]
 pub struct Expand {
@@ -19,18 +15,11 @@ pub struct Expand {
     placements: Vec<Point2D>,
     pq: PriorityQueue<usize, i64>,
     curr_score: Score,
-
-    remaining_musicians: HashSet<usize>,
-    impact_maps: HashMap<Instrument, ImpactMap>,
 }
 
 impl Solver for Expand {
     fn name(&self) -> &'static str {
         "expand"
-    }
-
-    fn get_impact_map(&self, instrument: &Instrument) -> Option<&ImpactMap> {
-        self.impact_maps.get(instrument)
     }
 
     fn get_grid(&self) -> Option<&Grid> {
@@ -42,73 +31,67 @@ impl Solver for Expand {
 
         self.grid = Grid::new(&self.problem);
 
-        let mut positions_by_distance_from_all = self
-            .grid
-            .positions
-            .iter()
-            .enumerate()
-            .map(|(idx, pos)| {
-                let sum_dist2: f32 = self
-                    .problem
-                    .attendees
-                    .iter()
-                    .map(|a| {
-                        let x = pos.p.x - a.x;
-                        let y = pos.p.y - a.y;
-                        x * x + y * y
-                    })
-                    .sum();
-                (idx, sum_dist2)
-            })
-            .collect::<Vec<_>>();
-        // Sort by max to min distance (squared)
-        positions_by_distance_from_all.sort_by_key(|(_idx, sum_dist2)| -sum_dist2 as i32);
+        // let mut positions_by_distance_from_all = self
+        //     .grid
+        //     .positions
+        //     .iter()
+        //     .enumerate()
+        //     .map(|(idx, pos)| {
+        //         let sum_dist2: f32 = self
+        //             .problem
+        //             .attendees
+        //             .iter()
+        //             .map(|a| {
+        //                 let x = pos.p.x - a.x;
+        //                 let y = pos.p.y - a.y;
+        //                 x * x + y * y
+        //             })
+        //             .sum();
+        //         (idx, sum_dist2)
+        //     })
+        //     .collect::<Vec<_>>();
+        // // Sort by max to min distance (squared)
+        // positions_by_distance_from_all.sort_by_key(|(_idx, sum_dist2)| -sum_dist2 as i32);
 
-        let mut idx_pos = 0;
-        for _ in &self.problem.musicians {
-            let new_pos = loop {
-                let pos = &mut self.grid.positions[positions_by_distance_from_all[idx_pos].0];
-                if !pos.taken {
-                    break pos;
-                }
-                idx_pos += 1;
-            };
+        // let mut idx_pos = 0;
+        // for _ in &self.problem.musicians {
+        //     let new_pos = loop {
+        //         let pos = &mut self.grid.positions[positions_by_distance_from_all[idx_pos].0];
+        //         if !pos.taken {
+        //             break pos;
+        //         }
+        //         idx_pos += 1;
+        //     };
 
-            self.placements.push(new_pos.p);
-            new_pos.taken = true;
-            let new_pos = *new_pos;
+        //     self.placements.push(new_pos.p);
+        //     new_pos.taken = true;
+        //     let new_pos = *new_pos;
 
+        //     for pos in self.grid.positions.iter_mut() {
+        //         let x = pos.p.x - new_pos.p.x;
+        //         let y = pos.p.y - new_pos.p.y;
+        //         let dist = (x * x + y * y).sqrt();
+        //         if dist <= 10.0 {
+        //             pos.taken = true;
+        //         }
+        //     }
+        // }
+
+        let stride = self.grid.positions.len() / self.problem.musicians.len();
+        for idx in (0..self.grid.positions.len()).step_by(stride) {
+            self.placements.push(self.grid.positions[idx].p);
+        }
+
+        for placement in &self.placements {
             for pos in self.grid.positions.iter_mut() {
-                let x = pos.p.x - new_pos.p.x;
-                let y = pos.p.y - new_pos.p.y;
+                let x = pos.p.x - placement.x;
+                let y = pos.p.y - placement.y;
                 let dist = (x * x + y * y).sqrt();
                 if dist <= 10.0 {
                     pos.taken = true;
                 }
             }
         }
-
-        // let max_instrument = self.problem.musicians.iter().map(|i| i.0).max().unwrap();
-
-        // for i in 0..self.problem.musicians.len() {
-        //     self.remaining_musicians.insert(i);
-        //     self.placements.push(Point2D {
-        //         x: f32::NAN,
-        //         y: f32::NAN,
-        //     });
-        // }
-
-        // // Compute impact maps
-        // println!("expand: computing impact maps");
-        // self.impact_maps = (0..=max_instrument)
-        //     .map(Instrument)
-        //     .collect::<Vec<_>>()
-        //     .par_iter()
-        //     .map(|i| {
-        //         let impact_map = ImpactMap::new(i, &self.problem.attendees, &self.grid);
-        //         (*i, impact_map)
-        //     })
-        //     .collect();
 
         let mut pq = PriorityQueue::new();
         for (idx, _) in self.problem.musicians.iter().enumerate() {
@@ -171,49 +154,81 @@ impl Solver for Expand {
         // }
 
         loop {
-            let mut group_size = rand::random::<usize>() % (self.problem.musicians.len() / 2);
-            if group_size == 0 {
-                group_size = 1;
-            }
-            println!("expand: group size = {}", group_size);
+            if rand::random::<u8>() % 10 > 3 {
+                let group_size = rand::random::<usize>() % 3 + 1;
 
-            let mut placement_indices = (0..self.placements.len()).collect::<Vec<_>>();
-            let (placement_indices_slice, _) = placement_indices.partial_shuffle(&mut rand::thread_rng(), group_size);
+                let mut placement_indices = (0..self.placements.len()).collect::<Vec<_>>();
+                let (placement_indices_slice, _) =
+                    placement_indices.partial_shuffle(&mut rand::thread_rng(), group_size);
 
-            let mut not_taken_positions = self.grid.positions.iter().filter(|p| !p.taken).collect::<Vec<_>>();
-            let (not_taken_slice, _) = not_taken_positions.partial_shuffle(&mut rand::thread_rng(), group_size);
+                let mut not_taken_positions = self
+                    .grid
+                    .positions
+                    .iter()
+                    .filter(|p| !p.taken)
+                    .collect::<Vec<_>>();
+                let (not_taken_slice, _) =
+                    not_taken_positions.partial_shuffle(&mut rand::thread_rng(), group_size);
 
-            let mut new_placements = self.placements.clone();
-            for (idx, pos) in placement_indices_slice.iter().zip(not_taken_slice.iter()) {
-                new_placements[*idx] = pos.p;
-            }
-
-            let new_score = crate::scorer::score(&self.problem, &new_placements);
-            let diff = new_score.0 - self.curr_score.0;
-
-            if diff > 0 {
-                self.placements = new_placements;
-                self.curr_score = new_score;
-
-                for pos in &mut self.grid.positions {
-                    pos.taken = false;
+                let mut new_placements = self.placements.clone();
+                for (idx, pos) in placement_indices_slice.iter().zip(not_taken_slice.iter()) {
+                    new_placements[*idx] = pos.p;
                 }
 
-                for placement in &self.placements {
-                    for pos in self.grid.positions.iter_mut() {
-                        let x = pos.p.x - placement.x;
-                        let y = pos.p.y - placement.y;
-                        let dist = (x * x + y * y).sqrt();
-                        if dist <= 10.0 {
-                            pos.taken = true;
+                let new_score = crate::scorer::score(&self.problem, &new_placements);
+                let diff = new_score.0 - self.curr_score.0;
+
+                if diff > 0 {
+                    self.placements = new_placements;
+                    self.curr_score = new_score;
+
+                    for pos in &mut self.grid.positions {
+                        pos.taken = false;
+                    }
+
+                    for placement in &self.placements {
+                        for pos in self.grid.positions.iter_mut() {
+                            let x = pos.p.x - placement.x;
+                            let y = pos.p.y - placement.y;
+                            let dist = (x * x + y * y).sqrt();
+                            if dist <= 10.0 {
+                                pos.taken = true;
+                            }
                         }
                     }
+
+                    println!("expand : won (group size {})", group_size);
+                    break;
                 }
-                break;
+            } else {
+                let group_size = rand::random::<usize>() % 3 + 1;
+
+                let mut placement_indices = (0..self.placements.len()).collect::<Vec<_>>();
+                let (placement_indices_slice, _) =
+                    placement_indices.partial_shuffle(&mut rand::thread_rng(), group_size * 2);
+
+                let (group_0, group_1) = placement_indices_slice.split_at_mut(group_size);
+
+                let rng = &mut rand::thread_rng();
+                group_0.shuffle(rng);
+
+                let mut new_placements = self.placements.clone();
+                for (idx0, idx1) in group_0.iter().zip(group_1.iter()) {
+                    new_placements.swap(*idx0, *idx1);
+                }
+
+                let new_score = crate::scorer::score(&self.problem, &new_placements);
+                let diff = new_score.0 - self.curr_score.0;
+
+                if diff > 0 {
+                    self.placements = new_placements;
+                    self.curr_score = new_score;
+
+                    println!("shuffle: won (group size {})", group_size);
+                    break;
+                }
             }
         }
-
-        // let mut group_0 = vec![];
 
         (
             SolutionDto {
