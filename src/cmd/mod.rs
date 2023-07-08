@@ -14,6 +14,8 @@ pub struct Args {
     pub solvers: Vec<String>,
     #[clap(subcommand)]
     pub command: Option<Commands>,
+    #[clap(short, long)]
+    pub log_level: Option<String>,
 }
 
 #[derive(Subcommand, Debug)]

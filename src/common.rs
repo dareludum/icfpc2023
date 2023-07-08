@@ -1,3 +1,5 @@
+use log::debug;
+
 use crate::dto::{Point2D, ProblemDto};
 
 #[derive(Clone, Copy)]
@@ -19,9 +21,9 @@ impl Grid {
         let until_x = problem.stage_bottom_left.0 + problem.stage_width - 10.0;
         let until_y = problem.stage_bottom_left.1 + problem.stage_height - 10.0;
 
-        println!("common: {} total musicians", problem.musicians.len());
+        debug!("common: {} total musicians", problem.musicians.len());
         let max_instrument = problem.musicians.iter().map(|i| i.0).max().unwrap();
-        println!("common: {} total instruments", max_instrument);
+        debug!("common: {} total instruments", max_instrument);
 
         let weight_factor = problem.musicians.len() as f32 / max_instrument as f32;
         let max_position_count = 1000000.0 / max_instrument as f32 / weight_factor;
@@ -42,7 +44,7 @@ impl Grid {
             delta *= 1.01;
         }
 
-        println!("common: delta = {}", delta);
+        debug!("common: delta = {}", delta);
 
         let mut positions = vec![];
         let mut curr_y = y;
@@ -61,7 +63,7 @@ impl Grid {
             curr_y += delta;
         }
 
-        println!("common: {} total positions", positions.len());
+        debug!("common: {} total positions", positions.len());
 
         Grid { positions }
     }

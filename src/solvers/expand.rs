@@ -1,3 +1,4 @@
+use log::debug;
 use priority_queue::PriorityQueue;
 use rand::seq::SliceRandom;
 
@@ -104,7 +105,7 @@ impl Solver for Expand {
         self.pq = pq;
         self.curr_score = crate::scorer::score(&self.problem, &self.placements);
 
-        println!("expand: initialized");
+        debug!("expand: initialized");
     }
 
     fn solve_step(&mut self) -> (SolutionDto, bool) {
@@ -113,7 +114,7 @@ impl Solver for Expand {
         //     if group_size == 0 {
         //         group_size = 1;
         //     }
-        //     println!("expand: group size = {}", group_size);
+        //     debug!("expand: group size = {}", group_size);
 
         //     let mut group_0 = vec![];
         //     for _ in 0..group_size {
@@ -200,7 +201,7 @@ impl Solver for Expand {
                         }
                     }
 
-                    println!("expand : won (group size {})", group_size);
+                    debug!("expand : won (group size {})", group_size);
                     break;
                 }
             } else {
@@ -227,7 +228,7 @@ impl Solver for Expand {
                     self.placements = new_placements;
                     self.curr_score = new_score;
 
-                    println!("shuffle: won (group size {})", group_size);
+                    debug!("shuffle: won (group size {})", group_size);
                     break;
                 }
             }
