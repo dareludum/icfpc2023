@@ -41,7 +41,11 @@ impl Solver for Chain {
         } else {
             let (s, done) = self.solver0.solve_step();
             if done {
-                debug!("chain: switching to {}", self.solver1.name());
+                debug!(
+                    "chain({}): switching to {}",
+                    self.problem.id,
+                    self.solver1.name()
+                );
                 self.solver1.initialize(&self.problem, s.clone());
                 self.step0 = false;
             }

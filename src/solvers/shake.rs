@@ -13,6 +13,7 @@ use super::{Problem, Score, Solver};
 pub struct Shake {
     problem: Problem,
     solution: SolutionDto,
+    prev_score: Score,
     curr_score: Score,
     idx: usize,
     idx_change: usize,
@@ -27,11 +28,13 @@ impl Solver for Shake {
     fn initialize(&mut self, problem: &Problem, solution: SolutionDto) {
         assert!(
             !solution.placements.is_empty(),
-            "shake: must not be the start of the chain"
+            "shake({}): must not be the start of the chain",
+            problem.id
         );
         self.problem = problem.clone();
         self.solution = solution;
         self.curr_score = score(&self.problem.data, &self.solution.placements);
+        self.prev_score = self.curr_score;
         self.idx = 0;
         self.idx_change = 0;
         self.any_improvement_this_cycle = false;
@@ -81,7 +84,6 @@ impl Solver for Shake {
                         self.solution.placements[i_pos] = curr_pos;
                         continue;
                     }
-                    debug!("shake: {} => {}", self.curr_score.0, new_score.0);
                     self.curr_score = new_score;
                     self.idx = i_pos;
                     self.idx_change = i_change;
@@ -91,13 +93,17 @@ impl Solver for Shake {
             }
 
             if self.any_improvement_this_cycle {
-                debug!("shake: new cycle");
+                debug!(
+                    "shake({}): new cycle ({} => {})",
+                    self.problem.id, self.prev_score.0, self.curr_score.0
+                );
+                self.prev_score = self.curr_score;
                 self.idx = 0;
                 self.idx_change = 0;
                 self.any_improvement_this_cycle = false;
                 continue;
             } else {
-                debug!("shake: done");
+                debug!("shake({}): done", self.problem.id);
                 self.idx = self.solution.placements.len();
                 return (self.solution.clone(), true);
             }
