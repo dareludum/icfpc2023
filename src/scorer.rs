@@ -3,13 +3,12 @@ use std::{
     iter::repeat,
 };
 
-use nalgebra::Vector2;
 use rayon::prelude::*;
 
 use crate::{
     common::Grid,
     dto::{Attendee, Instrument, PillarDto, Point2D, ProblemDto},
-    geometry::distance2,
+    geometry::{distance2, line_circle_intersection, Coords2D},
     solvers::Score,
 };
 
@@ -54,18 +53,13 @@ fn calculate_attendee_happiness(
                 continue;
             }
 
-            if is_sound_blocked_2(&placements[i], &placements[other_i], 5.0, attendee) {
+            if is_sound_blocked(&placements[i], &placements[other_i], 5.0, attendee) {
                 continue 'hap_loop;
             }
         }
 
         for pillar in pillars {
-            if is_sound_blocked_2(
-                &placements[i],
-                &pillar.center.into(),
-                pillar.radius,
-                attendee,
-            ) {
+            if is_sound_blocked(&placements[i], &pillar.center, pillar.radius, attendee) {
                 continue 'hap_loop;
             }
         }
@@ -82,123 +76,13 @@ fn calculate_attendee_happiness(
     happiness
 }
 
-fn is_sound_blocked_2(k: &Point2D, k_1: &Point2D, radius: f32, attendee: &Attendee) -> bool {
-    line_circle_intersection_2(attendee.into(), k.into(), k_1.into(), radius)
-}
-
-pub fn line_circle_intersection_2(
-    line_start: Vector2<f32>,
-    line_end: Vector2<f32>,
-    circle_center: Vector2<f32>,
-    radius: f32,
+fn is_sound_blocked(
+    pos: &impl Coords2D,
+    blocker_center: &impl Coords2D,
+    blocker_radius: f32,
+    attendee: &impl Coords2D,
 ) -> bool {
-    // Create vector from the start of the line to the center of the circle
-    let start_to_center = Point2D {
-        x: circle_center.x - line_start.x,
-        y: circle_center.y - line_start.y,
-    };
-
-    // Create the vector that represents the line
-    let line_vector = Point2D {
-        x: line_end.x - line_start.x,
-        y: line_end.y - line_start.y,
-    };
-
-    // Calculate the squared length of the line
-    let line_len_sq = line_vector.x * line_vector.x + line_vector.y * line_vector.y;
-
-    // Calculate the dot product of the start_to_center and the line_vector
-    let dot_product = start_to_center.x * line_vector.x + start_to_center.y * line_vector.y;
-
-    // Calculate the closest Placement on the line to the center of the circle
-    let t = dot_product / line_len_sq;
-
-    // If the closest Placement is outside the line segment, return false
-    if !(0.0..=1.0).contains(&t) {
-        return false;
-    }
-
-    // Calculate the coordinates of the closest Placement
-    let closest_point = Point2D {
-        x: line_start.x + t * line_vector.x,
-        y: line_start.y + t * line_vector.y,
-    };
-
-    // Calculate the vector from the closest Placement to the center of the circle
-    let closest_to_center = Point2D {
-        x: circle_center.x - closest_point.x,
-        y: circle_center.y - closest_point.y,
-    };
-
-    // Calculate the squared length of the vector
-    let closest_to_center_len_sq =
-        closest_to_center.x * closest_to_center.x + closest_to_center.y * closest_to_center.y;
-
-    // If the squared length is less than r squared, the line intersects the circle
-    closest_to_center_len_sq <= radius * radius
-}
-
-fn is_sound_blocked(k: &Point2D, k_1: &Point2D, attendee: &Attendee) -> bool {
-    line_circle_intersection(attendee.into(), k.into(), k_1.into(), 5.0)
-}
-
-pub fn line_circle_intersection(
-    a: Vector2<f32>,
-    b: Vector2<f32>,
-    circle_center: Vector2<f32>,
-    circle_radius: f32,
-) -> bool {
-    assert!((a - circle_center).norm() > circle_radius);
-    assert!((b - circle_center).norm() > circle_radius);
-    let a_b = b - a;
-    let a_b_norm = a_b.norm();
-    assert!(a_b_norm > circle_radius);
-
-    let a_circle = circle_center - a;
-    let a_b_dir = a_b / a_b_norm;
-    let projected_len = a_b_dir.dot(&a_circle);
-    if projected_len < 0. || projected_len > a_b_norm {
-        return false;
-    }
-    let circle_deviation_sq = a_circle.norm_squared() - projected_len * projected_len;
-    circle_deviation_sq < circle_radius * circle_radius
-}
-
-#[cfg(test)]
-mod tests {
-    use nalgebra::Vector2;
-
-    use crate::scorer::line_circle_intersection;
-
-    #[test]
-    fn test_cases() {
-        let tests = [
-            ((0., 0.), (1., 0.), (0.5, 0.), 0.01, true),
-            ((0., 0.), (10., 0.), (5., 5.), 3., false),
-            ((0., 0.), (10., 0.), (5., 5.), 5.1, true),
-            ((0., 0.), (10., 0.), (5., 5.), 4.9, false),
-            // circle alongside the line
-            ((-2.42, -3.58), (14.76, 6.64), (7.1, 8.44), 5., false),
-            ((-2.42, -3.58), (14.76, 6.64), (7.1, 7.44), 5., true),
-            // circle slightly behind the line
-            ((-2.42, -3.58), (14.76, 6.64), (17.56, 11.7), 5., false),
-            ((1100., 800.), (1100., 150.), (1100., 100.), 5., false),
-        ];
-
-        for (a, b, c, r, int) in tests {
-            let res = line_circle_intersection(
-                Vector2::new(a.0, a.1),
-                Vector2::new(b.0, b.1),
-                Vector2::new(c.0, c.1),
-                r,
-            );
-            assert_eq!(
-                res, int,
-                "intersection of segment from {:?} to {:?} by {:?} r {} should be {}",
-                a, b, c, r, int
-            );
-        }
-    }
+    line_circle_intersection(attendee, pos, blocker_center, blocker_radius)
 }
 
 fn calculate_closeness_factors(musicians: &[Instrument], placements: &[Point2D]) -> Vec<f64> {
@@ -317,7 +201,7 @@ impl ImpactMap {
             .flat_map(|(idx, pos)| {
                 let mut result = vec![];
                 for (idx_attendee, attendee) in attendees.iter().enumerate() {
-                    if is_sound_blocked(&pos.p, new_pos, attendee) {
+                    if is_sound_blocked(&pos.p, new_pos, 5.0, attendee) {
                         result.push((idx, idx_attendee));
                     }
                 }
@@ -367,9 +251,9 @@ impl PillarBlockageMap {
             .par_bridge()
             .filter(|(idx_pos, idx_attendee)| {
                 pillars.iter().any(|p| {
-                    is_sound_blocked_2(
+                    is_sound_blocked(
                         &grid.positions[*idx_pos].p,
-                        &p.center.into(),
+                        &p.center,
                         p.radius,
                         &attendees[*idx_attendee],
                     )
