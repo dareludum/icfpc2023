@@ -1,5 +1,5 @@
-mod greedy;
 mod expand;
+mod greedy;
 
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
