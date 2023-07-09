@@ -123,6 +123,17 @@ fn neighbor(
 //     initial_temperature * (-decay_rate * (step as f32 / max_steps as f32)).exp()
 // }
 
+fn pareto(alpha: f64, xmin: f64) -> f64 {
+    let u: f64 = rand::random::<f64>();
+    let x = xmin * (1.0 / u).powf(1.0 / alpha);
+    x
+}
+
+fn _cauchy(loc: f64, scale: f64) -> f64 {
+    let u: f64 = rand::random::<f64>();
+    return loc + scale * (u - 0.5).tan();
+}
+
 impl Solver for Annealer {
     fn name(&self) -> String {
         "annealer".to_owned()
@@ -178,9 +189,15 @@ impl Solver for Annealer {
         let mut rng = rand::thread_rng();
         let raw_temperature = 1f32 - self.step_i as f32 / self.max_steps as f32;
         let scaled_temperature = (raw_temperature * self.temperature_scale).ceil() as usize;
+
+        let temperature = pareto(
+            (1.0 + raw_temperature as f64).exp(),
+            scaled_temperature as f64,
+        );
+
         debug!(
-            "annealer({}): step {} raw_temperature={} scaled_temperature={}",
-            self.problem.id, self.step_i, raw_temperature, scaled_temperature
+            "annealer({}): step {} raw_temperature={} scaled_temperature={} temperature={}",
+            self.problem.id, self.step_i, raw_temperature, scaled_temperature, temperature
         );
 
         // generate a neighbor mutation
