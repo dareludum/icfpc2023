@@ -129,8 +129,8 @@ impl Solver for Shake {
             }
             if self.any_improvement_this_cycle {
                 debug!(
-                    "shake({}): new cycle ({} => {})",
-                    self.problem.id, self.orig_score.0, self.curr_score.0
+                    "shake({}): cycle {} done ({} => {})",
+                    self.cycles_count, self.problem.id, self.orig_score.0, self.curr_score.0
                 );
                 self.idx = 0;
                 self.idx_change = 0;
