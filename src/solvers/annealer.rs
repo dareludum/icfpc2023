@@ -100,6 +100,15 @@ fn neighbor(
     let vertical_moves =
         (temperature - horizontal_moves.abs()) * if rng.gen_bool(0.5) { 1 } else { -1 };
 
+    // FIXME: temp hack to have both even or odd new_x and new_y
+    // ------------------------------------------------------------------
+    let horizontal_moves =
+        rng.gen_range(0..=temperature / 2) * 2 * if rng.gen_bool(0.5) { 1 } else { -1 };
+    let vertical_moves_parity = horizontal_moves % 2;
+    let vertical_moves = ((temperature - horizontal_moves.abs()) / 2 * 2 + vertical_moves_parity)
+        * if rng.gen_bool(0.5) { 1 } else { -1 };
+    // ------------------------------------------------------------------
+
     let new_x = (musician.x as isize + horizontal_moves).rem_euclid(grid.size.width() as isize);
     let new_y = (musician.y as isize + vertical_moves).rem_euclid(grid.size.height() as isize);
 
@@ -118,6 +127,15 @@ fn neighbor(
         location: new_location,
     }
 }
+
+// fn temperature_exponential_decay(
+//     step: usize,
+//     max_steps: usize,
+//     initial_temperature: f32,
+//     decay_rate: f32,
+// ) -> f32 {
+//     initial_temperature * (-decay_rate * (step as f32 / max_steps as f32)).exp()
+// }
 
 impl Solver for Annealer {
     fn name(&self) -> String {
@@ -169,8 +187,13 @@ impl Solver for Annealer {
     }
 
     fn solve_step(&mut self) -> (SolutionDto, bool) {
+        let mut rng = rand::thread_rng();
         let raw_temperature = 1f32 - (self.step_i + 1) as f32 / self.max_steps as f32;
         let scaled_temperature = (raw_temperature * self.temperature_scale).ceil() as usize;
+        debug!(
+            "annealer({}): step {} raw_temperature={} scaled_temperature={}",
+            self.problem.id, self.step_i, raw_temperature, scaled_temperature
+        );
 
         // generate a neighbor mutation
         let musician_i = rand::thread_rng().gen_range(0..self.problem.data.musicians.len());
@@ -187,7 +210,17 @@ impl Solver for Annealer {
         let new_score = self.compute_score(&new_solution);
         let score_delta = new_score.0 - self.score.0;
 
+        if score_delta > 0 {
+            self.score = new_score;
+        } else {
+            if rng.gen_bool(raw_temperature as f64) {
+                self.score = new_score;
+            } else {
+                reverse_change.apply(&mut self.placements, &mut self.grid);
+            }
+        }
+
         self.step_i += 1;
-        (self.serialize(), self.step_i < self.max_steps)
+        (self.serialize(), self.step_i >= self.max_steps)
     }
 }
