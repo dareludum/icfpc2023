@@ -135,15 +135,15 @@ pub struct DiamondGrid<T: Clone> {
 impl<T: Clone> DiamondGrid<T> {
     pub fn new(size: GridSize, init: impl Fn(&GridCoord) -> T) -> DiamondGrid<T> {
         let mut even_nodes = vec![];
-        for y in (0..size.half_height).step_by(2) {
-            for x in (0..size.half_width).step_by(2) {
+        for y in (0..size.height()).step_by(2) {
+            for x in (0..size.width()).step_by(2) {
                 even_nodes.push(init(&GridCoord::new(x as isize, y as isize)));
             }
         }
 
         let mut odd_nodes = vec![];
-        for y in (1..size.half_height).step_by(2) {
-            for x in (1..size.half_width).step_by(2) {
+        for y in (1..size.height()).step_by(2) {
+            for x in (1..size.width()).step_by(2) {
                 odd_nodes.push(init(&GridCoord::new(x as isize, y as isize)));
             }
         }
