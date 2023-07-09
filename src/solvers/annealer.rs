@@ -176,7 +176,7 @@ impl Solver for Annealer {
 
     fn solve_step(&mut self) -> (SolutionDto, bool) {
         let mut rng = rand::thread_rng();
-        let raw_temperature = 1f32 - (self.step_i + 1) as f32 / self.max_steps as f32;
+        let raw_temperature = 1f32 - self.step_i as f32 / self.max_steps as f32;
         let scaled_temperature = (raw_temperature * self.temperature_scale).ceil() as usize;
         debug!(
             "annealer({}): step {} raw_temperature={} scaled_temperature={}",
