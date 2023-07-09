@@ -1,12 +1,11 @@
 use std::todo;
 
 use log::debug;
-use rand::seq::SliceRandom;
+use rand::Rng;
 
 use crate::{
     common::{Grid, GridLocation},
-    dto::{Point2D, SolutionDto},
-    geometry::distance2,
+    dto::SolutionDto,
 };
 
 use super::{Problem, Score, Solver};
@@ -35,14 +34,52 @@ enum Change {
 fn neighbor(
     problem: &Problem,
     grid: &Grid,
-    placements: Vec<GridLocation>,
+    placements: &[GridLocation],
     musician_i: usize,
     temperature: usize,
 ) -> Change {
-    return Change::Swap {
-        musician_a: 0,
-        musician_b: 0,
+    let mut rng = rand::thread_rng();
+    let musician = placements[musician_i].clone();
+    let temperature = temperature as isize;
+
+    let horizontal_moves = rng.gen_range(0..=temperature) * if rng.gen_bool(0.5) { 1 } else { -1 };
+    let vertical_moves =
+        (temperature - horizontal_moves.abs()) * if rng.gen_bool(0.5) { 1 } else { -1 };
+
+    let new_x = musician.x as isize + horizontal_moves;
+    let new_y = musician.y as isize + vertical_moves;
+
+    // bouncing
+    let new_location = GridLocation {
+        x: if new_x < 0 {
+            (-new_x) as usize
+        } else if new_x >= grid.width as isize {
+            (grid.width as isize - (new_x - grid.width as isize + 1)) as usize
+        } else {
+            new_x as usize
+        },
+        y: if new_y < 0 {
+            (-new_y) as usize
+        } else if new_y >= grid.height as isize {
+            (grid.height as isize - (new_y - grid.height as isize + 1)) as usize
+        } else {
+            new_y as usize
+        },
     };
+
+    let existing_musician = placements.iter().position(|p| *p == new_location);
+
+    if let Some(musician_b) = existing_musician {
+        return Change::Swap {
+            musician_a: musician_i,
+            musician_b,
+        };
+    }
+
+    Change::Move {
+        musician: musician_i,
+        location: new_location,
+    }
 }
 
 impl Solver for Annealer {
