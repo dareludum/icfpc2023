@@ -34,9 +34,15 @@ pub struct Grid {
     pub height: usize,
 }
 
+#[derive(Default, Clone)]
+pub struct GridLocation {
+    pub x: usize,
+    pub y: usize,
+}
+
 impl Grid {
-    pub fn get_position(&self, x: usize, y: usize) -> &Position {
-        return &self.positions[y * self.height + x];
+    pub fn get_position(&self, location: &GridLocation) -> &Position {
+        return &self.positions[location.y * self.height + location.x];
     }
 
     pub fn new(problem: &Problem) -> Self {
