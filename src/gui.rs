@@ -179,10 +179,12 @@ impl State {
     }
 
     pub fn update_score(&mut self) {
-        self.solution.score = self.problem.score(
-            &self.solution.data.placements,
-            self.solution.data.volumes.as_ref(),
-        );
+        if !self.solution.data.placements.is_empty() {
+            self.solution.score = self.solver.as_ref().unwrap().get_problem().score(
+                &self.solution.data.placements,
+                self.solution.data.volumes.as_ref(),
+            );
+        }
     }
 
     pub fn save_solution(&self) {

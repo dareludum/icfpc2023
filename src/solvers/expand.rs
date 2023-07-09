@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use log::debug;
 use priority_queue::PriorityQueue;
 use rand::seq::SliceRandom;
@@ -8,20 +10,37 @@ use crate::{
     geometry::distance2,
 };
 
-use super::{Problem, Score, Solver};
+use super::{Parameter, Problem, Score, Solver};
 
 #[derive(Default, Clone)]
 pub struct Expand {
+    // Parameters
+    cycles_cap: Option<u32>,
+    // Data
     problem: Problem,
     grid: Grid,
     placements: Vec<Point2D>,
     pq: PriorityQueue<usize, i64>,
     curr_score: Score,
+    cycles_count: u32,
 }
 
 impl Solver for Expand {
     fn name(&self) -> String {
-        "expand".to_owned()
+        let mut name = "expand".to_owned();
+        if let Some(cap) = self.cycles_cap {
+            name += &format!("_cap_{}", cap);
+        }
+        name
+    }
+
+    fn set_parameters(&mut self, parameters: HashMap<String, Parameter>) {
+        for (k, v) in parameters.into_iter() {
+            match (k.as_str(), v) {
+                ("cap", Parameter::Int(v)) => self.cycles_cap = Some(v as u32),
+                _ => panic!("Unknown parameter {}", k),
+            }
+        }
     }
 
     fn get_grid(&self) -> Option<&Grid> {
@@ -107,6 +126,7 @@ impl Solver for Expand {
 
         self.pq = pq;
         self.curr_score = self.problem.score(&self.placements, None); // TODO volumes
+        self.cycles_count = 0;
 
         debug!("expand({}): initialized", self.problem.id);
     }
@@ -204,9 +224,11 @@ impl Solver for Expand {
 
                     self.grid.recalculate_taken(&self.placements);
 
+                    self.cycles_count += 1;
+
                     debug!(
-                        "expand({}) : won (group size {})",
-                        self.problem.id, group_size
+                        "expand({}) : won (cycle {}, group size {})",
+                        self.problem.id, self.cycles_count, group_size
                     );
                     break;
                 } else {
@@ -240,9 +262,11 @@ impl Solver for Expand {
                     self.placements = new_placements;
                     self.curr_score = new_score;
 
+                    self.cycles_count += 1;
+
                     debug!(
-                        "shuffle({}): won (group size {})",
-                        self.problem.id, group_size
+                        "shuffle({}): won (cycle {}, group size {})",
+                        self.problem.id, self.cycles_count, group_size
                     );
                     break;
                 }
@@ -254,7 +278,7 @@ impl Solver for Expand {
                 placements: self.placements.clone(),
                 ..Default::default()
             },
-            false,
+            self.cycles_count >= self.cycles_cap.unwrap_or(u32::MAX),
         )
     }
 }

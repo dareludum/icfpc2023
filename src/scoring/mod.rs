@@ -7,6 +7,7 @@ use crate::{
 
 use self::new_scorer::NewScorer;
 
+pub mod approximate;
 pub mod impact_map;
 pub mod new_scorer;
 pub mod scorer;

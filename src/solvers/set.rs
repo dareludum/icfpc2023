@@ -4,7 +4,7 @@ use log::debug;
 
 use crate::{
     dto::SolutionDto,
-    scoring::{new_scorer::NewScorer, scorer::LegacyScorer},
+    scoring::{approximate::ApproximateScorer, new_scorer::NewScorer, scorer::LegacyScorer},
 };
 
 use super::{Parameter, Problem, Solver};
@@ -13,6 +13,7 @@ use super::{Parameter, Problem, Solver};
 enum Scorer {
     Legacy,
     New,
+    Approximate,
 }
 
 impl Scorer {
@@ -20,6 +21,7 @@ impl Scorer {
         match self {
             Scorer::Legacy => "legacy",
             Scorer::New => "new",
+            Scorer::Approximate => "approx",
         }
     }
 }
@@ -49,6 +51,7 @@ impl Solver for Set {
                     self.scorer = Some(match v.as_str() {
                         "legacy" => Scorer::Legacy,
                         "new" => Scorer::New,
+                        "approx" => Scorer::Approximate,
                         _ => panic!("Unknown scorer {}", v),
                     })
                 }
@@ -76,6 +79,7 @@ impl Solver for Set {
             self.problem.scorer = match scorer {
                 Scorer::Legacy => Box::<LegacyScorer>::default(),
                 Scorer::New => Box::<NewScorer>::default(),
+                Scorer::Approximate => Box::new(ApproximateScorer::new(&self.problem)),
             }
         }
 
