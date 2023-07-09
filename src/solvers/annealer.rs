@@ -23,9 +23,9 @@ pub struct Annealer {
     placements: Vec<GridCoord>,
     score: Score,
 
-    pub initial_temperature: f32,
-    pub temperature: f32,
-    pub cooling_rate: f32,
+    pub temperature_scale: f32,
+    pub max_steps: usize,
+    pub step_i: usize,
 }
 
 enum Change {
@@ -40,12 +40,20 @@ enum Change {
 }
 
 impl Annealer {
-    fn compute_score(&self) -> Score {
+    fn serialize(&self) -> SolutionDto {
         let mut res = vec![];
         for coord in &self.placements {
             res.push(self.grid_transform.apply(coord).into());
         }
-        crate::scoring::new_scorer::new_score(&self.problem.data, &res, None)
+        SolutionDto {
+            placements: res,
+            volumes: None,
+        }
+    }
+
+    fn compute_score(&self, solution: &SolutionDto) -> Score {
+        self.problem
+            .score(&solution.placements, solution.volumes.as_ref())
     }
 
     fn apply(&mut self, change: &Change) {
@@ -105,6 +113,7 @@ impl Solver for Annealer {
             "expand: must be the start of the chain"
         );
         self.problem = problem.clone();
+        let musician_count = problem.data.musicians.len();
 
         (self.grid_size, self.grid_transform) = fit_circles_grid(
             problem.data.stage_bottom_left,
@@ -116,26 +125,42 @@ impl Solver for Annealer {
 
         // figure out an initial placement for muscians
         let mut placement = self.grid_size.all_grid_coordinates();
-        let (random_placement, _) = (&mut placement[..])
-            .partial_shuffle(&mut rand::thread_rng(), problem.data.musicians.len());
+        let (random_placement, _) =
+            (&mut placement[..]).partial_shuffle(&mut rand::thread_rng(), musician_count);
         for (i, placement) in random_placement.iter().enumerate() {
             self.placements.push(*placement);
             self.grid[placement] = Some(i);
         }
 
         // compute the score
-        self.score = self.compute_score();
+        self.score = self.compute_score(&self.serialize());
 
         // figure out the initial temperature
         let grid_width = self.grid_size.width();
-        let grid_height = self.grid_size.height();
-        self.initial_temperature = ((grid_width.pow(2) + grid_width.pow(2)) as f32).sqrt() / 3.;
-        self.temperature = self.initial_temperature;
-        self.cooling_rate = 0.9;
-        debug!("annealer({}): initialized", self.problem.id);
+        let grid_height: usize = self.grid_size.height();
+        self.temperature_scale = ((grid_width.pow(2) + grid_width.pow(2)) as f32).sqrt() / 3.;
+        self.max_steps = musician_count * 100;
+        debug!(
+            "annealer({}): initialized for {}",
+            self.problem.id, self.max_steps
+        );
     }
 
     fn solve_step(&mut self) -> (SolutionDto, bool) {
-        todo!()
+        let raw_temperature = 1f32 - (self.step_i + 1) as f32 / self.max_steps as f32;
+        let scaled_temperature = (raw_temperature * self.temperature_scale).ceil() as usize;
+
+        // generate a neighbor mutation
+        let musician_i = rand::thread_rng().gen_range(0..self.problem.data.musicians.len());
+        let neighbor = neighbor(
+            &self.problem,
+            &self.grid,
+            &self.placements,
+            musician_i,
+            scaled_temperature,
+        );
+
+        self.step_i += 1;
+        (self.serialize(), self.step_i < self.max_steps)
     }
 }
