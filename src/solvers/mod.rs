@@ -1,3 +1,4 @@
+mod annealer;
 mod chain;
 mod expand;
 mod genetic;
@@ -22,6 +23,7 @@ use crate::{
     scorer::score,
 };
 
+use self::annealer::Annealer;
 use self::chain::Chain;
 use self::expand::Expand;
 use self::genetic::Genetic;
@@ -265,6 +267,7 @@ fn create_individual_solver(solver_name: &str) -> Box<dyn Solver> {
         "greedy" => Box::<Greedy>::default(),
         "genetic" => Box::<Genetic>::default(),
         "shake" => Box::<Shake>::default(),
+        "annealer" => Box::<Annealer>::default(),
         n => panic!("Unknown solver `{}`", n),
     };
     solver.set_parameters(parameters);
