@@ -172,7 +172,7 @@ impl Solver for Greedy {
         (
             SolutionDto {
                 placements: self.placements.clone(),
-                volumes: vec![],
+                ..Default::default()
             },
             self.remaining_musicians.is_empty(),
         )

@@ -247,7 +247,7 @@ impl Solver for Expand {
         (
             SolutionDto {
                 placements: self.placements.clone(),
-                volumes: vec![],
+                ..Default::default()
             },
             false,
         )

@@ -76,7 +76,7 @@ impl Solver for Genetic {
 
         let solution = SolutionDto {
             placements: best_population.placements.clone(),
-            volumes: vec![],
+            ..Default::default()
         };
 
         (solution, is_finished)
