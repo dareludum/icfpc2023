@@ -120,8 +120,13 @@ fn main() -> std::io::Result<()> {
             let before_fast_score = Instant::now();
             let fast_score = new_scorer::new_score(&problem.data, &solution.placements);
             let fast_score_time = before_fast_score.elapsed();
-            println!("     score: {:>10} {:>10}us", score.0, score_time.as_micros());
-            println!("fast score: {:>10} {:>10}us",
+            println!(
+                "     score: {:>10} {:>10}us",
+                score.0,
+                score_time.as_micros()
+            );
+            println!(
+                "fast score: {:>10} {:>10}us",
                 fast_score.0,
                 fast_score_time.as_micros()
             );

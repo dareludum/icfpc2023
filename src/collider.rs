@@ -101,7 +101,7 @@ impl<'sol, 'pro> Collider<'sol, 'pro> {
         };
 
         let mut visitor = RayIntersectionsVisitor::new(&ray, std::f32::INFINITY, &mut callback);
-        
+
         !self.qbvh.traverse_depth_first(&mut visitor)
     }
 }
