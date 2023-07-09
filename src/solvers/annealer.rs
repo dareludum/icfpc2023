@@ -39,32 +39,19 @@ fn neighbor(
     temperature: usize,
 ) -> Change {
     let mut rng = rand::thread_rng();
-    let musician = placements[musician_i].clone();
+    let musician = &placements[musician_i];
     let temperature = temperature as isize;
 
     let horizontal_moves = rng.gen_range(0..=temperature) * if rng.gen_bool(0.5) { 1 } else { -1 };
     let vertical_moves =
         (temperature - horizontal_moves.abs()) * if rng.gen_bool(0.5) { 1 } else { -1 };
 
-    let new_x = musician.x as isize + horizontal_moves;
-    let new_y = musician.y as isize + vertical_moves;
+    let new_x = (musician.x as isize + horizontal_moves).rem_euclid(grid.width as isize);
+    let new_y = (musician.y as isize + vertical_moves).rem_euclid(grid.height as isize);
 
-    // bouncing
     let new_location = GridLocation {
-        x: if new_x < 0 {
-            (-new_x) as usize
-        } else if new_x >= grid.width as isize {
-            (grid.width as isize - (new_x - grid.width as isize + 1)) as usize
-        } else {
-            new_x as usize
-        },
-        y: if new_y < 0 {
-            (-new_y) as usize
-        } else if new_y >= grid.height as isize {
-            (grid.height as isize - (new_y - grid.height as isize + 1)) as usize
-        } else {
-            new_y as usize
-        },
+        x: new_x as usize,
+        y: new_y as usize,
     };
 
     let existing_musician = placements.iter().position(|p| *p == new_location);
