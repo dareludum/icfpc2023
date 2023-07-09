@@ -61,13 +61,13 @@ impl GridSize {
 
             let excess_x = new_x - width + 1;
             if excess_x > 0 {
-                new_x = new_x - excess_x * 2;
+                new_x -= excess_x * 2;
                 changed = true;
             }
 
             let excess_y = new_y - height + 1;
             if excess_y > 0 {
-                new_y = new_y - excess_y * 2;
+                new_y -= excess_y * 2;
                 changed = true;
             }
 
@@ -118,7 +118,7 @@ pub fn fit_circles_grid(
     // min_coarseness = 2 * diag / sqrt(2)
     // min_coarseness = 4 * radius / sqrt(2)
     // min_coarseness = radius * (4 / sqrt(2))
-    let min_coarseness = radius * 2.82842712474619f32;
+    let min_coarseness = radius * 2.828_427_f32;
     let min_x = bottom_left.0 + radius;
     let min_y = bottom_left.1 + radius;
     let width = width - radius * 2f32;
@@ -158,13 +158,13 @@ pub fn fit_grid(
 
 #[cfg(test)]
 mod tests {
-    use std::assert_eq;
+    
 
     use super::fit_grid;
 
     #[test]
     fn test_fit_grid() {
-        let (size, transform) = fit_grid(5., 10., 3.5, 3.5, 1.);
+        let (_size, _transform) = fit_grid(5., 10., 3.5, 3.5, 1.);
     }
 }
 
@@ -253,8 +253,8 @@ impl<T: Copy> Index<&GridCoord> for DiamondGrid<T> {
         let x = index.x as usize >> 1;
         let y = index.y as usize >> 1;
         match classify(index).unwrap() {
-            CoordSpace::Even => return &self.even_nodes[y * self.size.half_width + x],
-            CoordSpace::Odd => return &self.odd_nodes[y * (self.size.half_width - 1) + x],
+            CoordSpace::Even => &self.even_nodes[y * self.size.half_width + x],
+            CoordSpace::Odd => &self.odd_nodes[y * (self.size.half_width - 1) + x],
         }
     }
 }
@@ -264,8 +264,8 @@ impl<T: Copy> IndexMut<&GridCoord> for DiamondGrid<T> {
         let x = index.x as usize >> 1;
         let y = index.y as usize >> 1;
         match classify(index).unwrap() {
-            CoordSpace::Even => return &mut self.even_nodes[y * self.size.half_width + x],
-            CoordSpace::Odd => return &mut self.odd_nodes[y * (self.size.half_width - 1) + x],
+            CoordSpace::Even => &mut self.even_nodes[y * self.size.half_width + x],
+            CoordSpace::Odd => &mut self.odd_nodes[y * (self.size.half_width - 1) + x],
         }
     }
 }

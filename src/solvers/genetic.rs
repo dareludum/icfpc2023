@@ -58,7 +58,7 @@ impl Solver for Genetic {
         self.population = self.create_initial_population(self.population_size, &self.problem);
         if !solution.placements.is_empty() {
             self.population[0].placements = solution.placements;
-            self.population[0].recalculate_fitness(&problem);
+            self.population[0].recalculate_fitness(problem);
         }
 
         self.population.sort_by_key(|x| cmp::Reverse(x.fitness));

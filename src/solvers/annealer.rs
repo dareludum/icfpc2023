@@ -115,14 +115,13 @@ fn neighbor(
 // pareto distribution is really biased towards mean
 fn pareto(alpha: f64, xmin: f64) -> f64 {
     let u: f64 = rand::random::<f64>();
-    let x = xmin * (1.0 / u).powf(1.0 / alpha);
-    x
+    xmin * (1.0 / u).powf(1.0 / alpha)
 }
 
 // cauchy distribution can generate negative numbers and 0, so use with abs() and max(1)
 fn _cauchy(loc: f64, scale: f64) -> f64 {
     let u: f64 = rand::random::<f64>();
-    return loc + scale * (u - 0.5).tan();
+    loc + scale * (u - 0.5).tan()
 }
 
 impl Solver for Annealer {
@@ -156,7 +155,7 @@ impl Solver for Annealer {
         // figure out an initial placement for musicians
         let mut placement = self.grid_size.all_grid_coordinates();
         let (random_placement, _) =
-            (&mut placement[..]).partial_shuffle(&mut rand::thread_rng(), musician_count);
+            placement[..].partial_shuffle(&mut rand::thread_rng(), musician_count);
         for (i, placement) in random_placement.iter().enumerate() {
             self.placements.push(*placement);
             self.grid[placement] = Some(i);
@@ -205,14 +204,10 @@ impl Solver for Annealer {
         let new_score = self.compute_score(&new_solution);
         let score_delta = new_score.0 - self.score.0;
 
-        if score_delta > 0 {
+        if score_delta > 0 || rng.gen_bool(raw_temperature as f64) {
             self.score = new_score;
         } else {
-            if rng.gen_bool(raw_temperature as f64) {
-                self.score = new_score;
-            } else {
-                reverse_change.apply(&mut self.placements, &mut self.grid);
-            }
+            reverse_change.apply(&mut self.placements, &mut self.grid);
         }
 
         self.step_i += 1;
