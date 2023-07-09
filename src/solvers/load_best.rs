@@ -2,7 +2,10 @@ use std::path::Path;
 
 use log::{debug, warn};
 
-use crate::{dto::SolutionDto, solvers::Solution};
+use crate::{
+    dto::{Point2D, SolutionDto},
+    solvers::Solution,
+};
 
 use super::{Problem, Solver};
 
@@ -33,7 +36,10 @@ impl Solver for LoadBest {
                 "load_best({}): no best solution - keeping the empty one to not fail",
                 problem.id
             );
-            self.solution = solution;
+            self.solution = SolutionDto {
+                placements: vec![Point2D { x: 0.0, y: 0.0 }; problem.data.musicians.len()],
+                volumes: None,
+            };
             self.name = "invalid".to_owned();
         }
     }

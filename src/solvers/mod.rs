@@ -4,6 +4,7 @@ mod expand;
 mod genetic;
 mod greedy;
 mod load_best;
+mod mix;
 mod shake;
 
 use std::collections::{HashMap, HashSet};
@@ -30,6 +31,7 @@ use self::expand::Expand;
 use self::genetic::Genetic;
 use self::greedy::Greedy;
 use self::load_best::LoadBest;
+use self::mix::Mix;
 use self::shake::Shake;
 
 #[derive(Default, Clone)]
@@ -292,6 +294,7 @@ fn create_individual_solver(solver_name: &str) -> Box<dyn Solver> {
         "genetic" => Box::<Genetic>::default(),
         "greedy" => Box::<Greedy>::default(),
         "load_best" => Box::<LoadBest>::default(),
+        "mix" => Box::<Mix>::default(),
         "shake" => Box::<Shake>::default(),
         n => panic!("Unknown solver `{}`", n),
     };
