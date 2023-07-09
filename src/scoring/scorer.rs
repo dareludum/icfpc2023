@@ -58,7 +58,7 @@ fn calculate_attendee_happiness(
             }
         }
 
-        let volume = *volumes.unwrap_or(&vec![]).get(i).unwrap_or(&1.0) as f64;
+        let volume = volumes.map(|vs| vs[i]).unwrap_or(1.0) as f64;
         let impact = calculate_impact(attendee, &musicians[i], &placements[i]) as f64;
 
         if !closeness_factors.is_empty() {

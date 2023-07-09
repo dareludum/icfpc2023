@@ -75,10 +75,7 @@ pub fn new_score(
                     let distance_sq = (attendee.x - musician_location.x).powi(2)
                         + (attendee.y - musician_location.y).powi(2);
                     let impact = ((1_000_000f32 * taste) / distance_sq).ceil();
-                    let volume = *volumes
-                        .unwrap_or(&Vec::new())
-                        .get(musician_i)
-                        .unwrap_or(&1.0) as f32;
+                    let volume = volumes.map(|vs| vs[musician_i]).unwrap_or(1.0);
 
                     let score = if has_pillars {
                         let closeness = musicians_closeness[musician_i];
