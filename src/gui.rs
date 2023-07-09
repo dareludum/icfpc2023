@@ -558,6 +558,9 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
                     state.selected_instrument.unwrap().to_string()
                 }
             ),
+            "Logical mouse coords:".to_owned(),
+            format!("  - x: {}", mouse_pos_logical.x as i32),
+            format!("  - y: {}", mouse_pos_logical.y as i32),
         ];
 
         for (idx, line) in lines.iter().enumerate() {
