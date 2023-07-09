@@ -76,6 +76,7 @@ pub struct ProblemDto {
 #[derive(Serialize, Deserialize, Default, Debug, Clone)]
 pub struct SolutionDto {
     pub placements: Vec<Point2D>,
+    pub volumes: Vec<f32>,
 }
 
 impl SolutionDto {
