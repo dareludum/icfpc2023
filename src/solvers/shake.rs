@@ -4,6 +4,7 @@ use crate::{
     common::calculate_invalid_positions,
     dto::{Point2D, SolutionDto},
     geometry::Coords2D,
+    new_scorer::new_score,
     scorer::score,
 };
 
@@ -34,7 +35,7 @@ impl Solver for Shake {
         );
         self.problem = problem.clone();
         self.solution = solution;
-        self.curr_score = score(&self.problem.data, &self.solution.placements);
+        self.curr_score = new_score(&self.problem.data, &self.solution.placements);
         self.orig_score = self.curr_score;
         self.idx = 0;
         self.idx_change = 0;
