@@ -1,13 +1,35 @@
 use std::ops::{Index, IndexMut};
 
-use crate::geometry::Coords2D;
-
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct GridSize {
     half_width: usize,
     half_height: usize,
 }
 
+impl GridSize {
+    pub fn width(&self) -> usize {
+        self.half_width * 2
+    }
+
+    pub fn height(&self) -> usize {
+        self.half_width * 2
+    }
+
+    pub fn all_grid_coordinates(&self) -> Vec<GridCoord> {
+        let mut res = vec![];
+        for y in 0..self.width() {
+            for x in 0..self.height() {
+                let coord = GridCoord::new(x as isize, y as isize);
+                if classify(&coord).is_some() {
+                    res.push(coord)
+                }
+            }
+        }
+        res
+    }
+}
+
+#[derive(Debug, Clone, Default)]
 pub struct GridTransform {
     pub cell_width: f32,
     pub cell_height: f32,
@@ -16,7 +38,7 @@ pub struct GridTransform {
 }
 
 impl GridTransform {
-    pub fn apply(&self, coord: GridCoord) -> (f32, f32) {
+    pub fn apply(&self, coord: &GridCoord) -> (f32, f32) {
         (
             self.x_offset + self.cell_width * coord.x as f32,
             self.y_offset + self.cell_height * coord.y as f32,
@@ -24,7 +46,7 @@ impl GridTransform {
     }
 }
 
-fn fit_circles_grid(
+pub fn fit_circles_grid(
     bottom_left: (f32, f32),
     width: f32,
     height: f32,
@@ -45,7 +67,7 @@ fn fit_circles_grid(
     fit_grid(min_x, min_y, width, height, min_coarseness)
 }
 
-fn fit_grid(
+pub fn fit_grid(
     min_x: f32,
     min_y: f32,
     width: f32,
@@ -72,14 +94,14 @@ fn fit_grid(
     (grid_size, grid_transform)
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct GridCoord {
     pub x: isize,
     pub y: isize,
 }
 
 impl GridCoord {
-    fn new(x: isize, y: isize) -> Self {
+    pub fn new(x: isize, y: isize) -> Self {
         GridCoord { x, y }
     }
 }
@@ -89,7 +111,7 @@ enum CoordSpace {
     Odd,
 }
 
-fn classify(coord: GridCoord) -> Option<CoordSpace> {
+fn classify(coord: &GridCoord) -> Option<CoordSpace> {
     match (coord.x & 1, coord.y & 1) {
         (0, 0) => Some(CoordSpace::Even),
         (1, 1) => Some(CoordSpace::Odd),
@@ -103,8 +125,8 @@ fn classify(coord: GridCoord) -> Option<CoordSpace> {
 ///    |  (1,1)  |  (3,1)  |
 ///    +---------+---------+
 ///     (0,0)     (2,0)     (4,0)
-#[derive(Clone)]
-struct DiamondGrid<T: Clone> {
+#[derive(Clone, Default)]
+pub struct DiamondGrid<T: Clone> {
     even_nodes: Vec<T>,
     odd_nodes: Vec<T>,
     pub size: GridSize,
@@ -134,10 +156,10 @@ impl<T: Clone> DiamondGrid<T> {
     }
 }
 
-impl<T: Copy> Index<GridCoord> for DiamondGrid<T> {
+impl<T: Copy> Index<&GridCoord> for DiamondGrid<T> {
     type Output = T;
 
-    fn index(&self, index: GridCoord) -> &Self::Output {
+    fn index(&self, index: &GridCoord) -> &Self::Output {
         let x = index.x as usize >> 1;
         let y = index.y as usize >> 1;
         match classify(index).unwrap() {
@@ -147,8 +169,8 @@ impl<T: Copy> Index<GridCoord> for DiamondGrid<T> {
     }
 }
 
-impl<T: Copy> IndexMut<GridCoord> for DiamondGrid<T> {
-    fn index_mut(&mut self, index: GridCoord) -> &mut Self::Output {
+impl<T: Copy> IndexMut<&GridCoord> for DiamondGrid<T> {
+    fn index_mut(&mut self, index: &GridCoord) -> &mut Self::Output {
         let x = index.x as usize >> 1;
         let y = index.y as usize >> 1;
         match classify(index).unwrap() {
