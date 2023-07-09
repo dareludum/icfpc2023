@@ -6,6 +6,7 @@ mod greedy;
 mod load_best;
 mod mix;
 mod shake;
+mod vol10;
 
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
@@ -33,6 +34,7 @@ use self::greedy::Greedy;
 use self::load_best::LoadBest;
 use self::mix::Mix;
 use self::shake::Shake;
+use self::vol10::Vol10;
 
 #[derive(Default, Clone)]
 pub struct Problem {
@@ -296,6 +298,7 @@ fn create_individual_solver(solver_name: &str) -> Box<dyn Solver> {
         "load_best" => Box::<LoadBest>::default(),
         "mix" => Box::<Mix>::default(),
         "shake" => Box::<Shake>::default(),
+        "vol10" => Box::<Vol10>::default(),
         n => panic!("Unknown solver `{}`", n),
     };
     solver.set_parameters(parameters);
