@@ -1,6 +1,8 @@
 // TODO: Remove this
 #![allow(dead_code, unused_variables)]
 
+use std::time::Instant;
+
 use log::debug;
 
 use crate::{
@@ -24,6 +26,7 @@ pub struct Annealer {
     pub temperature_scale: f32,
     pub max_steps: usize,
     pub step_i: usize,
+    pub start_time: Option<Instant>,
 }
 
 #[derive(Clone)]
@@ -75,7 +78,7 @@ impl Annealer {
         }
         SolutionDto {
             placements: res,
-            volumes: None,
+            volumes: Some(vec![10.0; self.placements.len()]),
         }
     }
 
@@ -124,6 +127,28 @@ fn _cauchy(loc: f64, scale: f64) -> f64 {
     loc + scale * (u - 0.5).tan()
 }
 
+/// x between 0 and 1, starts at 0
+fn cooling_cycle(x: f32) -> f32 {
+    let x_sq = (x - 1.).powi(2);
+    let x_cube = x_sq.powi(2);
+    let plateau = (-0.5 * ((x - 0.7) / 0.2).powi(2)).exp() / 5.;
+    let quench_size = 0.1f32;
+    let res = (1. / (1. - quench_size)) * ((x_sq + x_cube) / 2. + plateau - quench_size);
+    if res < 0. {
+        0.
+    } else {
+        res
+    }
+}
+
+fn acceptance_probability(score_delta: i64, raw_temperature: f32) -> f32 {
+    let score_scale = 1. / 1_000_000f32;
+    if raw_temperature == 0. {
+        return 0.;
+    }
+    (score_delta as f32 * score_scale / raw_temperature).exp()
+}
+
 impl Solver for Annealer {
     fn name(&self) -> String {
         "annealer".to_owned()
@@ -168,7 +193,8 @@ impl Solver for Annealer {
         let grid_width = self.grid_size.width();
         let grid_height: usize = self.grid_size.height();
         self.temperature_scale = ((grid_width.pow(2) + grid_width.pow(2)) as f32).sqrt() / 3.;
-        self.max_steps = musician_count * 100;
+        self.max_steps = musician_count * 500;
+        self.start_time = Some(Instant::now());
         debug!(
             "annealer({}): initialized for {}",
             self.problem.id, self.max_steps
@@ -177,26 +203,22 @@ impl Solver for Annealer {
 
     fn solve_step(&mut self) -> (SolutionDto, bool) {
         let mut rng = rand::thread_rng();
-        let raw_temperature = 1f32 - self.step_i as f32 / self.max_steps as f32;
-        // distance_mean is the mean of the distance distribution, essentially the peak
-        let distance_mean = (raw_temperature * self.temperature_scale).ceil() as usize;
-
-        // the less raw_temperature is, the more likely distribution is to be close to distance_mean
-        let distance = pareto((1.0 + raw_temperature as f64).exp(), distance_mean as f64);
-
-        debug!(
-            "annealer({}): step {} raw_temperature={} scaled_temperature={} distance={}",
-            self.problem.id, self.step_i, raw_temperature, distance_mean, distance
-        );
+        let progress = self.step_i as f32 / (self.max_steps - 1) as f32;
+        let raw_temperature = cooling_cycle(progress);
 
         // generate a neighbor mutation
         let musician_i = rand::thread_rng().gen_range(0..self.problem.data.musicians.len());
+        // distance_mean is the mean of the distance distribution, essentially the peak
+        let distance_mean = raw_temperature * self.temperature_scale;
+        // the less raw_temperature is, the more likely distribution is to be close to distance_mean
+        let distance =
+            pareto((1.0 + raw_temperature as f64).exp(), distance_mean as f64).ceil() as usize;
         let neighbor = neighbor(
             &self.problem,
             &self.grid,
             &self.placements,
             musician_i,
-            distance as usize,
+            distance.max(1),
         );
 
         let reverse_change = neighbor.apply(&mut self.placements, &mut self.grid);
@@ -204,13 +226,30 @@ impl Solver for Annealer {
         let new_score = self.compute_score(&new_solution);
         let score_delta = new_score.0 - self.score.0;
 
-        if score_delta > 0 || rng.gen_bool(raw_temperature as f64) {
+        let decision_stats = if score_delta > 0 {
             self.score = new_score;
+            None
         } else {
-            reverse_change.apply(&mut self.placements, &mut self.grid);
-        }
+            let probability = acceptance_probability(score_delta, raw_temperature);
+            let take_the_loss = rng.gen_bool(probability as f64);
+            // debug!("loss of {score_delta} taken {take_the_loss} prob {probability:.4}");
+            if take_the_loss {
+                self.score = new_score;
+            } else {
+                reverse_change.apply(&mut self.placements, &mut self.grid);
+            }
+            Some((probability, take_the_loss))
+        };
+
+        debug!(
+            "annealer({}): step {:>5}   raw_temperature={:<5.3}   distance_mean={:<5.2}   distance={:<5.2}  score_delta={:<10} {:?}",
+            self.problem.id, self.step_i, raw_temperature, distance_mean, distance, score_delta, decision_stats
+        );
 
         self.step_i += 1;
-        (self.serialize(), self.step_i >= self.max_steps)
+        let done_steps = self.step_i >= self.max_steps;
+        let elapsed = self.start_time.unwrap().elapsed();
+        let timeout = elapsed.as_secs() > 60 * 20;
+        (self.serialize(), done_steps || timeout)
     }
 }

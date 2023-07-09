@@ -109,8 +109,6 @@ pub fn fit_circles_grid(
     height: f32,
     radius: f32,
 ) -> (GridSize, GridTransform) {
-    dbg!(bottom_left, width, height, radius);
-
     // the coarseness of the grid is the space between two even rows
     // diag = sqrt(2) * side
     // diag = 2 * radius
@@ -152,13 +150,11 @@ pub fn fit_grid(
         x_max: x_min + width,
         y_max: y_min + height,
     };
-    dbg!(&grid_transform, &grid_size);
     (grid_size, grid_transform)
 }
 
 #[cfg(test)]
 mod tests {
-    
 
     use super::fit_grid;
 
