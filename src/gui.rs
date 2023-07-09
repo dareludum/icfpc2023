@@ -120,6 +120,7 @@ struct State {
     max_instrument: u32,
     auto_step: bool,
     done: bool,
+    show_pruned_data: bool,
     selected_instrument: Option<u32>,
     selected_musician: Option<usize>,
     dragged_musician: Option<(usize, Vector2)>,
@@ -171,6 +172,7 @@ impl State {
             problem,
             ratio,
             max_instrument,
+            show_pruned_data: true,
             viewport_zoom: 1.0,
             ..State::default()
         }
@@ -282,6 +284,9 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
                         state.taste_gradient = None;
                     }
                 }
+                KeyboardKey::KEY_E => {
+                    state.show_pruned_data = !state.show_pruned_data;
+                }
                 KeyboardKey::KEY_LEFT_BRACKET | KeyboardKey::KEY_RIGHT_BRACKET => {
                     let current_problem_id = state.problem.id.parse::<i16>().unwrap();
                     let new_problem_id = if k == KeyboardKey::KEY_LEFT_BRACKET {
@@ -291,15 +296,14 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
                     };
                     let mut new_problem_path = problem_path.to_owned();
                     new_problem_path.set_file_name(&format!("{}.json", new_problem_id));
-                    if !new_problem_path.exists() {
-                        break;
+                    if new_problem_path.exists() {
+                        state = State::new(&new_problem_path);
+                        rl.set_window_title(
+                            &thread,
+                            &format!("ICFPC2023 - Dare Ludum - {:#?}", new_problem_path),
+                        );
+                        continue 'main;
                     }
-                    state = State::new(&new_problem_path);
-                    rl.set_window_title(
-                        &thread,
-                        &format!("ICFPC2023 - Dare Ludum - {:#?}", new_problem_path),
-                    );
-                    continue 'main;
                 }
                 _ => {}
             }
@@ -412,6 +416,16 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
                 Color::GRAY,
             )
         }
+        if state.show_pruned_data {
+            for p in &state.problem.removed_pillars {
+                d.draw_circle(
+                    transform_x(p.center.0),
+                    transform_y(p.center.1),
+                    p.radius * zoomed_ratio,
+                    Color::LIGHTSKYBLUE,
+                )
+            }
+        }
 
         for attendee in state.problem.data.attendees.iter() {
             d.draw_circle(
@@ -428,6 +442,16 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
                     })
                     .unwrap_or(Color::DARKBROWN),
             );
+        }
+        if state.show_pruned_data {
+            for attendee in state.problem.removed_attendees.iter() {
+                d.draw_circle(
+                    transform_x(attendee.x),
+                    transform_y(attendee.y),
+                    10.0 * zoomed_ratio,
+                    Color::LIGHTSKYBLUE,
+                );
+            }
         }
 
         for (idx, p) in state.solution.data.placements.iter().enumerate() {
@@ -518,6 +542,7 @@ pub fn gui_main(problem_path: &std::path::Path, solver_name: &str) {
             "  - Zoom: Mouse wheel".to_owned(),
             "  - Solve step: Space".to_owned(),
             "  - Solve (auto): Shift+Space".to_owned(),
+            "  - Show/Hide pruned data: E".to_owned(),
             "  - Prev/Next instrument: Q/W".to_owned(),
             "  - Prev/Next problem: [/]".to_owned(),
             "".to_owned(),

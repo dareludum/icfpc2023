@@ -5,7 +5,7 @@ mod genetic;
 mod greedy;
 mod shake;
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
 use std::path::Path;
@@ -34,6 +34,8 @@ use self::shake::Shake;
 pub struct Problem {
     pub id: String,
     pub data: ProblemDto,
+    pub removed_attendees: Vec<Attendee>,
+    pub removed_pillars: Vec<PillarDto>,
 }
 
 impl Problem {
@@ -45,6 +47,8 @@ impl Problem {
         let mut problem = Problem {
             id: id.clone(),
             data: serde_json::from_reader(reader)?,
+            removed_attendees: vec![],
+            removed_pillars: vec![],
         };
         if !problem.data.pillars.is_empty() {
             #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -114,6 +118,20 @@ impl Problem {
                     "prune: pruned 0 pillars ({} total)",
                     problem.data.pillars.len()
                 );
+            }
+
+            let pruned_attendees_set = pruned_attendees.iter().collect::<HashSet<_>>();
+            let pruned_pillars_set = pruned_pillars.iter().collect::<HashSet<_>>();
+
+            for a in &problem.data.attendees {
+                if !pruned_attendees_set.contains(a) {
+                    problem.removed_attendees.push(a.clone());
+                }
+            }
+            for p in &problem.data.pillars {
+                if !pruned_pillars_set.contains(p) {
+                    problem.removed_pillars.push(p.clone());
+                }
             }
 
             problem.data.attendees = pruned_attendees;

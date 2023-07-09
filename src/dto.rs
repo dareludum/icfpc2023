@@ -12,6 +12,23 @@ pub struct Attendee {
     pub tastes: Vec<f32>,
 }
 
+impl PartialEq for Attendee {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.y == other.y
+    }
+}
+
+impl Eq for Attendee {
+    fn assert_receiver_is_total_eq(&self) {}
+}
+
+impl Hash for Attendee {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        (self.x as i32).hash(state);
+        (self.y as i32).hash(state);
+    }
+}
+
 impl Coords2D for Attendee {
     fn x(&self) -> f32 {
         self.x
@@ -27,10 +44,19 @@ impl Coords2D for Attendee {
 )]
 pub struct Instrument(pub u32);
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Debug, Clone)]
 pub struct PillarDto {
     pub center: (f32, f32),
     pub radius: f32,
+}
+
+impl Eq for PillarDto {}
+
+impl Hash for PillarDto {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        (self.center.0 as i32).hash(state);
+        (self.center.1 as i32).hash(state);
+    }
 }
 
 // Default is to avoid Option<ProblemDto> in solvers
