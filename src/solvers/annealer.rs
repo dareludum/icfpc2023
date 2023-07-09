@@ -90,13 +90,12 @@ fn neighbor(
     grid: &DiamondGrid<Option<usize>>,
     placements: &[GridCoord],
     musician_i: usize,
-    temperature: usize,
+    distance: usize,
 ) -> MusicianChange {
     let mut rng = rand::thread_rng();
     let musician = &placements[musician_i];
-    let temperature = temperature;
 
-    let displacement = musician.random_displacement(&mut rng, temperature);
+    let displacement = musician.random_displacement(&mut rng, distance);
     let new_location = grid.size.displace(musician, displacement);
 
     let existing_musician = placements.iter().position(|p| *p == new_location);
@@ -113,22 +112,14 @@ fn neighbor(
         location: new_location,
     }
 }
-
-// fn temperature_exponential_decay(
-//     step: usize,
-//     max_steps: usize,
-//     initial_temperature: f32,
-//     decay_rate: f32,
-// ) -> f32 {
-//     initial_temperature * (-decay_rate * (step as f32 / max_steps as f32)).exp()
-// }
-
+// pareto distribution is really biased towards mean
 fn pareto(alpha: f64, xmin: f64) -> f64 {
     let u: f64 = rand::random::<f64>();
     let x = xmin * (1.0 / u).powf(1.0 / alpha);
     x
 }
 
+// cauchy distribution can generate negative numbers and 0, so use with abs() and max(1)
 fn _cauchy(loc: f64, scale: f64) -> f64 {
     let u: f64 = rand::random::<f64>();
     return loc + scale * (u - 0.5).tan();
@@ -188,16 +179,15 @@ impl Solver for Annealer {
     fn solve_step(&mut self) -> (SolutionDto, bool) {
         let mut rng = rand::thread_rng();
         let raw_temperature = 1f32 - self.step_i as f32 / self.max_steps as f32;
-        let scaled_temperature = (raw_temperature * self.temperature_scale).ceil() as usize;
+        // distance_mean is the mean of the distance distribution, essentially the peak
+        let distance_mean = (raw_temperature * self.temperature_scale).ceil() as usize;
 
-        let temperature = pareto(
-            (1.0 + raw_temperature as f64).exp(),
-            scaled_temperature as f64,
-        );
+        // the less raw_temperature is, the more likely distribution is to be close to distance_mean
+        let distance = pareto((1.0 + raw_temperature as f64).exp(), distance_mean as f64);
 
         debug!(
-            "annealer({}): step {} raw_temperature={} scaled_temperature={} temperature={}",
-            self.problem.id, self.step_i, raw_temperature, scaled_temperature, temperature
+            "annealer({}): step {} raw_temperature={} scaled_temperature={} distance={}",
+            self.problem.id, self.step_i, raw_temperature, distance_mean, distance
         );
 
         // generate a neighbor mutation
@@ -207,7 +197,7 @@ impl Solver for Annealer {
             &self.grid,
             &self.placements,
             musician_i,
-            scaled_temperature,
+            distance as usize,
         );
 
         let reverse_change = neighbor.apply(&mut self.placements, &mut self.grid);
