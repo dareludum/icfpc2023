@@ -7,7 +7,7 @@ use crate::{
     common::{calculate_invalid_positions, Grid},
     dto::{Attendee, Instrument, SolutionDto},
     geometry::{distance2, Coords2D},
-    scoring::scorer::ImpactMap,
+    scoring::impact_map::ImpactMap,
     solvers::{create_solver, Problem, Solution, Solver},
 };
 

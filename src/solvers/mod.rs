@@ -16,7 +16,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::common::{prune_attendees_and_pillars, Grid};
 use crate::dto::{Attendee, Instrument, PillarDto};
-use crate::scoring::scorer::ImpactMap;
+use crate::scoring::impact_map::ImpactMap;
 use crate::{
     dto::{ProblemDto, SolutionDto, SolutionMetaDto},
     helpers::os_str_to_str,
