@@ -94,25 +94,11 @@ fn neighbor(
 ) -> MusicianChange {
     let mut rng = rand::thread_rng();
     let musician = &placements[musician_i];
-    let temperature = temperature as isize;
+    let temperature = temperature;
 
-    let horizontal_moves = rng.gen_range(0..=temperature) * if rng.gen_bool(0.5) { 1 } else { -1 };
-    let vertical_moves =
-        (temperature - horizontal_moves.abs()) * if rng.gen_bool(0.5) { 1 } else { -1 };
+    let displacement = musician.random_displacement(&mut rng, temperature);
+    let new_location = grid.size.displace(musician, displacement);
 
-    // FIXME: temp hack to have both even or odd new_x and new_y
-    // ------------------------------------------------------------------
-    let horizontal_moves =
-        rng.gen_range(0..=temperature / 2) * 2 * if rng.gen_bool(0.5) { 1 } else { -1 };
-    let vertical_moves_parity = horizontal_moves % 2;
-    let vertical_moves = ((temperature - horizontal_moves.abs()) / 2 * 2 + vertical_moves_parity)
-        * if rng.gen_bool(0.5) { 1 } else { -1 };
-    // ------------------------------------------------------------------
-
-    let new_x = (musician.x as isize + horizontal_moves).rem_euclid(grid.size.width() as isize);
-    let new_y = (musician.y as isize + vertical_moves).rem_euclid(grid.size.height() as isize);
-
-    let new_location = GridCoord::new(new_x, new_y);
     let existing_musician = placements.iter().position(|p| *p == new_location);
 
     if let Some(musician_b) = existing_musician {
@@ -155,10 +141,12 @@ impl Solver for Annealer {
         self.problem = problem.clone();
         let musician_count = problem.data.musicians.len();
 
+        let padding = 5.002;
+        let (corner_x, corner_y) = problem.data.stage_bottom_left;
         (self.grid_size, self.grid_transform) = fit_circles_grid(
-            problem.data.stage_bottom_left,
-            problem.data.stage_width,
-            problem.data.stage_height,
+            (corner_x + padding, corner_y + padding),
+            problem.data.stage_width - padding * 2.,
+            problem.data.stage_height - padding * 2.,
             5.002,
         );
         self.grid = DiamondGrid::new(self.grid_size, |_| None);
