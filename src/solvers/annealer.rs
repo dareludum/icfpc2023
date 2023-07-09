@@ -29,13 +29,21 @@ enum Change {
     Move {
         musician: usize,
         location: GridLocation,
-    }
+    },
 }
 
-fn neighbor(problem: &Problem, grid: &Grid, placements: Vec<GridLocation>, temperature: usize) -> Change {
-    return Change::Swap { musician_a: 0, musician_b: 0 }
+fn neighbor(
+    problem: &Problem,
+    grid: &Grid,
+    placements: Vec<GridLocation>,
+    musician_i: usize,
+    temperature: usize,
+) -> Change {
+    return Change::Swap {
+        musician_a: 0,
+        musician_b: 0,
+    };
 }
-
 
 impl Solver for Annealer {
     fn name(&self) -> String {
