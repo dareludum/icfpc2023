@@ -227,6 +227,7 @@ pub trait Solver: DynClone + Sync + Send {
             self.name()
         );
     }
+    fn get_problem(&self) -> &Problem;
     fn initialize(&mut self, problem: &Problem, solution: SolutionDto);
     fn solve_step(&mut self) -> (SolutionDto, bool);
 

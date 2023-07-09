@@ -28,6 +28,10 @@ impl Solver for Expand {
         Some(&self.grid)
     }
 
+    fn get_problem(&self) -> &Problem {
+        &self.problem
+    }
+
     fn initialize(&mut self, problem: &Problem, solution: SolutionDto) {
         // NOTE: This can be changed
         assert!(

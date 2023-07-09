@@ -49,6 +49,10 @@ impl Solver for Genetic {
         "genetic".to_string()
     }
 
+    fn get_problem(&self) -> &Problem {
+        &self.problem
+    }
+
     fn initialize(&mut self, problem: &super::Problem, solution: SolutionDto) {
         self.problem = problem.clone();
         self.population = self.create_initial_population(self.population_size, &self.problem);

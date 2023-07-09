@@ -104,6 +104,10 @@ impl Solver for Annealer {
         "annealer".to_owned()
     }
 
+    fn get_problem(&self) -> &Problem {
+        &self.problem
+    }
+
     fn initialize(&mut self, problem: &Problem, solution: SolutionDto) {
         // NOTE: This can be changed
         assert!(

@@ -11,6 +11,7 @@ use super::{Problem, Solver};
 
 #[derive(Default, Clone)]
 pub struct LoadBest {
+    problem: Problem,
     solution: SolutionDto,
     name: String,
 }
@@ -18,6 +19,10 @@ pub struct LoadBest {
 impl Solver for LoadBest {
     fn name(&self) -> String {
         self.name.clone()
+    }
+
+    fn get_problem(&self) -> &Problem {
+        &self.problem
     }
 
     fn initialize(&mut self, problem: &Problem, solution: SolutionDto) {
@@ -42,6 +47,7 @@ impl Solver for LoadBest {
             };
             self.name = "invalid".to_owned();
         }
+        self.problem = problem.clone();
     }
 
     fn solve_step(&mut self) -> (SolutionDto, bool) {

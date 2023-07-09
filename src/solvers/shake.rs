@@ -44,6 +44,10 @@ impl Solver for Shake {
         }
     }
 
+    fn get_problem(&self) -> &Problem {
+        &self.problem
+    }
+
     fn initialize(&mut self, problem: &Problem, solution: SolutionDto) {
         assert!(
             !solution.placements.is_empty(),

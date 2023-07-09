@@ -15,6 +15,10 @@ impl Solver for Vol10 {
         "vol10".to_owned()
     }
 
+    fn get_problem(&self) -> &Problem {
+        &self.problem
+    }
+
     fn initialize(&mut self, problem: &Problem, solution: SolutionDto) {
         assert!(
             !solution.placements.is_empty(),

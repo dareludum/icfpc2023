@@ -29,6 +29,10 @@ impl Solver for Chain {
         self.get_solver().get_grid()
     }
 
+    fn get_problem(&self) -> &Problem {
+        self.get_solver().get_problem()
+    }
+
     fn initialize(&mut self, problem: &Problem, solution: SolutionDto) {
         self.solver0.initialize(problem, solution);
         self.step0 = true;
@@ -46,7 +50,8 @@ impl Solver for Chain {
                     self.problem.id,
                     self.solver1.name()
                 );
-                self.solver1.initialize(&self.problem, s.clone());
+                self.solver1
+                    .initialize(self.solver0.get_problem(), s.clone());
                 self.step0 = false;
             }
             (s, false)
