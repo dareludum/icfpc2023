@@ -44,7 +44,11 @@ fn compute_closeness(problem: &ProblemDto, placements: &[Point2D]) -> Vec<f32> {
 }
 
 #[allow(dead_code)]
-pub fn new_score(problem: &ProblemDto, placements: &[Point2D]) -> Score {
+pub fn new_score(
+    problem: &ProblemDto,
+    placements: &[Point2D],
+    volumes: Option<&Vec<f32>>,
+) -> Score {
     let collider = Collider::new(problem, placements);
     let has_pillars = !problem.pillars.is_empty();
 
@@ -71,11 +75,16 @@ pub fn new_score(problem: &ProblemDto, placements: &[Point2D]) -> Score {
                     let distance_sq = (attendee.x - musician_location.x).powi(2)
                         + (attendee.y - musician_location.y).powi(2);
                     let impact = ((1_000_000f32 * taste) / distance_sq).ceil();
+                    let volume = *volumes
+                        .unwrap_or(&Vec::new())
+                        .get(musician_i)
+                        .unwrap_or(&1.0) as f32;
+
                     let score = if has_pillars {
                         let closeness = musicians_closeness[musician_i];
-                        (impact * closeness).ceil() as i64
+                        (impact * closeness * volume).ceil() as i64
                     } else {
-                        impact as i64
+                        (impact * volume) as i64
                     };
                     attendee_score += score
                 }

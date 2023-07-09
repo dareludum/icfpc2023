@@ -223,7 +223,11 @@ pub trait Solver: DynClone + Sync + Send {
                 continue;
             }
             return Solution {
-                score: score(&problem.data, &solution.placements),
+                score: score(
+                    &problem.data,
+                    &solution.placements,
+                    solution.volumes.as_ref(),
+                ),
                 data: solution,
             };
         }

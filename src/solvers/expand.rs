@@ -102,7 +102,7 @@ impl Solver for Expand {
         }
 
         self.pq = pq;
-        self.curr_score = crate::scoring::scorer::score(&self.problem.data, &self.placements);
+        self.curr_score = crate::scoring::scorer::score(&self.problem.data, &self.placements, None); // TODO volumes
 
         debug!("expand({}): initialized", self.problem.id);
     }
@@ -155,6 +155,7 @@ impl Solver for Expand {
         //     }
         // }
 
+        let volumes = None; // TODO volumes
         loop {
             if rand::random::<u8>() % 10 > 3 {
                 // Try expand - move musicians to new positions
@@ -190,7 +191,8 @@ impl Solver for Expand {
                     new_placements[*idx] = pos.p;
                 }
 
-                let new_score = crate::scoring::scorer::score(&self.problem.data, &new_placements);
+                let new_score =
+                    crate::scoring::scorer::score(&self.problem.data, &new_placements, volumes);
                 let diff = new_score.0 - self.curr_score.0;
 
                 if diff > 0 {
@@ -228,7 +230,8 @@ impl Solver for Expand {
                     new_placements.swap(*idx0, *idx1);
                 }
 
-                let new_score = crate::scoring::scorer::score(&self.problem.data, &new_placements);
+                let new_score =
+                    crate::scoring::scorer::score(&self.problem.data, &new_placements, volumes);
                 let diff = new_score.0 - self.curr_score.0;
 
                 if diff > 0 {

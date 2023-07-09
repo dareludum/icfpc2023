@@ -27,6 +27,7 @@ pub struct Genetic {
 struct Individual {
     fitness: i64,
     placements: Vec<Point2D>,
+    volumes: Option<Vec<f32>>,
 }
 
 impl Default for Genetic {
@@ -99,9 +100,11 @@ impl Genetic {
                 placements.push(generate_random_placement(problem, &placements));
             }
 
+            // TODO volumes
             let individual = Individual {
-                fitness: new_score(problem, &placements).0,
+                fitness: new_score(problem, &placements, None).0,
                 placements,
+                volumes: None,
             };
 
             population.push(individual);
@@ -231,7 +234,7 @@ fn random_repair_invalid_positions(problem: &ProblemDto, placements: &mut [Point
 
 impl Individual {
     fn recalculate_fitness(&mut self, problem: &ProblemDto) {
-        self.fitness = new_score(problem, &self.placements).0;
+        self.fitness = new_score(problem, &self.placements, self.volumes.as_ref()).0;
     }
 
     fn mutate(&mut self, problem: &ProblemDto) {

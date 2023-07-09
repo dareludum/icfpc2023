@@ -182,6 +182,7 @@ impl State {
         self.solution.score = crate::scoring::new_scorer::new_score(
             &self.problem.data,
             &self.solution.data.placements,
+            self.solution.data.volumes.as_ref(),
         );
     }
 

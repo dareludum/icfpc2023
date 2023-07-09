@@ -37,6 +37,7 @@ fn calculate_attendee_happiness(
     placements: &[Point2D],
     pillars: &[PillarDto],
     closeness_factors: &[f64],
+    volumes: Option<&Vec<f32>>,
 ) -> i64 {
     let mut happiness = 0;
 
@@ -57,12 +58,13 @@ fn calculate_attendee_happiness(
             }
         }
 
-        let impact = calculate_impact(attendee, &musicians[i], &placements[i]);
+        let volume = *volumes.unwrap_or(&vec![]).get(i).unwrap_or(&1.0) as f64;
+        let impact = calculate_impact(attendee, &musicians[i], &placements[i]) as f64;
 
         if !closeness_factors.is_empty() {
-            happiness += (closeness_factors[i] * impact as f64).ceil() as i64;
+            happiness += (volume * closeness_factors[i] * impact).ceil() as i64;
         } else {
-            happiness += impact;
+            happiness += (volume * impact).ceil() as i64;
         }
     }
 
@@ -98,7 +100,7 @@ fn calculate_closeness_factors(musicians: &[Instrument], placements: &[Point2D])
     closeness_factors
 }
 
-pub fn score(problem: &ProblemDto, placements: &[Point2D]) -> Score {
+pub fn score(problem: &ProblemDto, placements: &[Point2D], volumes: Option<&Vec<f32>>) -> Score {
     // if there are pillars then it is a task from spec v2
     let closeness_factors = if problem.pillars.is_empty() {
         vec![]
@@ -117,6 +119,7 @@ pub fn score(problem: &ProblemDto, placements: &[Point2D]) -> Score {
                     placements,
                     &problem.pillars,
                     &closeness_factors,
+                    volumes,
                 )
             })
             .sum(),
