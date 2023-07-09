@@ -26,7 +26,8 @@ pub struct Annealer {
     pub step_i: usize,
 }
 
-enum Change {
+#[derive(Clone)]
+enum MusicianChange {
     Swap {
         musician_a: usize,
         musician_b: usize,
@@ -35,6 +36,35 @@ enum Change {
         musician: usize,
         location: GridCoord,
     },
+}
+
+impl MusicianChange {
+    fn apply(&self, placements: &mut [GridCoord], grid: &mut DiamondGrid<Option<usize>>) -> Self {
+        match self {
+            MusicianChange::Swap {
+                musician_a,
+                musician_b,
+            } => {
+                let loc_a = placements[*musician_a];
+                let loc_b = placements[*musician_b];
+                placements[*musician_b] = loc_a;
+                placements[*musician_a] = loc_b;
+                grid[&loc_a] = Some(*musician_b);
+                grid[&loc_b] = Some(*musician_a);
+                self.clone()
+            }
+            MusicianChange::Move { musician, location } => {
+                let old_location = placements[*musician];
+                placements[*musician] = *location;
+                grid[&old_location] = None;
+                grid[location] = Some(*musician);
+                MusicianChange::Move {
+                    musician: *musician,
+                    location: old_location,
+                }
+            }
+        }
+    }
 }
 
 impl Annealer {
@@ -53,16 +83,6 @@ impl Annealer {
         self.problem
             .score(&solution.placements, solution.volumes.as_ref())
     }
-
-    fn apply(&mut self, change: &Change) {
-        match change {
-            Change::Swap {
-                musician_a,
-                musician_b,
-            } => {}
-            Change::Move { musician, location } => {}
-        }
-    }
 }
 
 fn neighbor(
@@ -71,7 +91,7 @@ fn neighbor(
     placements: &[GridCoord],
     musician_i: usize,
     temperature: usize,
-) -> Change {
+) -> MusicianChange {
     let mut rng = rand::thread_rng();
     let musician = &placements[musician_i];
     let temperature = temperature as isize;
@@ -87,13 +107,13 @@ fn neighbor(
     let existing_musician = placements.iter().position(|p| *p == new_location);
 
     if let Some(musician_b) = existing_musician {
-        return Change::Swap {
+        return MusicianChange::Swap {
             musician_a: musician_i,
             musician_b,
         };
     }
 
-    Change::Move {
+    MusicianChange::Move {
         musician: musician_i,
         location: new_location,
     }
@@ -161,6 +181,11 @@ impl Solver for Annealer {
             musician_i,
             scaled_temperature,
         );
+
+        let reverse_change = neighbor.apply(&mut self.placements, &mut self.grid);
+        let new_solution = self.serialize();
+        let new_score = self.compute_score(&new_solution);
+        let score_delta = new_score.0 - self.score.0;
 
         self.step_i += 1;
         (self.serialize(), self.step_i < self.max_steps)
