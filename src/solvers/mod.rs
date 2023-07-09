@@ -1,7 +1,7 @@
 mod chain;
 mod expand;
-mod greedy;
 mod genetic;
+mod greedy;
 mod shake;
 
 use std::fs::File;
@@ -10,7 +10,7 @@ use std::path::Path;
 
 use dyn_clone::DynClone;
 
-use crate::common::Grid;
+use crate::common::{prune_attendees_and_pillars, Grid};
 use crate::dto::Instrument;
 use crate::scorer::ImpactMap;
 use crate::{
@@ -21,8 +21,8 @@ use crate::{
 
 use self::chain::Chain;
 use self::expand::Expand;
-use self::greedy::Greedy;
 use self::genetic::Genetic;
+use self::greedy::Greedy;
 use self::shake::Shake;
 
 #[derive(Default, Clone)]
@@ -37,11 +37,16 @@ impl Problem {
         let file = File::open(problem_path)?;
         let reader = BufReader::new(file);
 
-        // Read the JSON contents of the file as an instance of `User`.
-        Ok(Problem {
+        let mut problem = Problem {
             id,
             data: serde_json::from_reader(reader)?,
-        })
+        };
+        if !problem.data.pillars.is_empty() {
+            let (pruned_attendees, pruned_pillars) = prune_attendees_and_pillars(&problem.data);
+            problem.data.attendees = pruned_attendees;
+            problem.data.pillars = pruned_pillars;
+        }
+        Ok(problem)
     }
 }
 

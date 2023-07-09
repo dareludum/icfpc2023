@@ -2,10 +2,11 @@ use std::collections::HashSet;
 
 use log::debug;
 use rand::Rng;
+use rayon::prelude::{IntoParallelRefIterator, ParallelIterator};
 
 use crate::{
-    dto::{Point2D, ProblemDto},
-    geometry::{distance2, Coords2D},
+    dto::{Attendee, PillarDto, Point2D, ProblemDto},
+    geometry::{distance2, line_circle_intersection, Coords2D},
     solvers::Problem,
 };
 
@@ -179,4 +180,95 @@ pub fn get_random_coords(problem: &ProblemDto) -> Point2D {
                 ..problem.stage_bottom_left.1 + problem.stage_height - 10.0,
         ),
     }
+}
+
+pub fn prune_attendees_and_pillars(problem: &ProblemDto) -> (Vec<Attendee>, Vec<PillarDto>) {
+    debug!(
+        "prune: trying to prune {} attendees ({} pillars)",
+        problem.attendees.len(),
+        problem.pillars.len()
+    );
+    let mut stage_edge_points = vec![];
+    const DELTA: f32 = 0.001;
+
+    // NOTE: 10.0 is the musician radius
+    let min_x = problem.stage_bottom_left.x() + 10.0;
+    let min_y = problem.stage_bottom_left.y() + 10.0;
+    let max_x = problem.stage_bottom_left.x() + problem.stage_width - 10.0;
+    let max_y = problem.stage_bottom_left.y() + problem.stage_height - 10.0;
+
+    let mut x = min_x;
+    while x <= max_x {
+        stage_edge_points.push((x, min_y));
+        stage_edge_points.push((x, max_y));
+        x += DELTA;
+    }
+    let mut y = min_y;
+    while y <= max_y {
+        stage_edge_points.push((min_x, y));
+        stage_edge_points.push((max_x, y));
+        y += DELTA;
+    }
+
+    let pruned_attendees = problem
+        .attendees
+        .par_iter()
+        .filter(|a| {
+            let is_stage_visible = stage_edge_points.iter().any(|point| {
+                let is_point_obstructed = problem
+                    .pillars
+                    .iter()
+                    .any(|p| line_circle_intersection(*a, point, &p.center, p.radius));
+                !is_point_obstructed
+            });
+            is_stage_visible
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+
+    if pruned_attendees.len() < problem.attendees.len() {
+        debug!(
+            "prune: {} => {} attendees (-{}%)",
+            problem.attendees.len(),
+            pruned_attendees.len(),
+            (((problem.attendees.len() as f32 - pruned_attendees.len() as f32)
+                / (problem.attendees.len() as f32))
+                * 100.0) as i32
+        );
+    } else {
+        debug!(
+            "prune: pruned 0 attendees ({} total)",
+            problem.attendees.len()
+        );
+    }
+
+    let pruned_pillars = problem
+        .pillars
+        .par_iter()
+        .filter(|p| {
+            let is_obscuring_vision_of_anyone = pruned_attendees.iter().any(|a| {
+                let is_obscuring_vision_of_this_attendee = stage_edge_points
+                    .iter()
+                    .any(|point| line_circle_intersection(a, point, &p.center, p.radius));
+                is_obscuring_vision_of_this_attendee
+            });
+            is_obscuring_vision_of_anyone
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+
+    if pruned_pillars.len() < problem.attendees.len() {
+        debug!(
+            "prune: {} => {} pillars (-{}%)",
+            problem.pillars.len(),
+            pruned_pillars.len(),
+            (((problem.pillars.len() as f32 - pruned_pillars.len() as f32)
+                / (problem.pillars.len() as f32))
+                * 100.0) as i32
+        );
+    } else {
+        debug!("prune: pruned 0 pillars ({} total)", problem.pillars.len());
+    }
+
+    (pruned_attendees, pruned_pillars)
 }
