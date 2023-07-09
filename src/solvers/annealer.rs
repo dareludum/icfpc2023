@@ -1,8 +1,6 @@
 // TODO: Remove this
 #![allow(dead_code, unused_variables)]
 
-use std::todo;
-
 use log::debug;
 
 use crate::{
@@ -103,14 +101,14 @@ fn neighbor(
 
 impl Solver for Annealer {
     fn name(&self) -> String {
-        "expand".to_owned()
+        "annealer".to_owned()
     }
 
     fn initialize(&mut self, problem: &Problem, solution: SolutionDto) {
         // NOTE: This can be changed
         assert!(
             solution.placements.is_empty(),
-            "expand: must be the start of the chain"
+            "annealer: must be the start of the chain"
         );
         self.problem = problem.clone();
         let musician_count = problem.data.musicians.len();
@@ -123,7 +121,7 @@ impl Solver for Annealer {
         );
         self.grid = DiamondGrid::new(self.grid_size, |_| None);
 
-        // figure out an initial placement for muscians
+        // figure out an initial placement for musicians
         let mut placement = self.grid_size.all_grid_coordinates();
         let (random_placement, _) =
             (&mut placement[..]).partial_shuffle(&mut rand::thread_rng(), musician_count);
