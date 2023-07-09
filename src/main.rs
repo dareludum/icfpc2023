@@ -16,6 +16,7 @@ use solvers::SOLVERS;
 mod cmd;
 mod collider;
 mod common;
+mod diamond_grid;
 mod dto;
 mod geometry;
 mod gui;
