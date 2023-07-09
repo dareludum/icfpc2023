@@ -1,3 +1,6 @@
+// TODO: Remove this
+#![allow(dead_code, unused_variables)]
+
 use std::todo;
 
 use log::debug;
