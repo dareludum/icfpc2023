@@ -183,11 +183,6 @@ pub fn get_random_coords(problem: &ProblemDto) -> Point2D {
 }
 
 pub fn prune_attendees_and_pillars(problem: &ProblemDto) -> (Vec<Attendee>, Vec<PillarDto>) {
-    debug!(
-        "prune: trying to prune {} attendees ({} pillars)",
-        problem.attendees.len(),
-        problem.pillars.len()
-    );
     let mut stage_edge_points = vec![];
     const DELTA: f32 = 0.001;
 
@@ -226,22 +221,6 @@ pub fn prune_attendees_and_pillars(problem: &ProblemDto) -> (Vec<Attendee>, Vec<
         .cloned()
         .collect::<Vec<_>>();
 
-    if pruned_attendees.len() < problem.attendees.len() {
-        debug!(
-            "prune: {} => {} attendees (-{}%)",
-            problem.attendees.len(),
-            pruned_attendees.len(),
-            (((problem.attendees.len() as f32 - pruned_attendees.len() as f32)
-                / (problem.attendees.len() as f32))
-                * 100.0) as i32
-        );
-    } else {
-        debug!(
-            "prune: pruned 0 attendees ({} total)",
-            problem.attendees.len()
-        );
-    }
-
     let pruned_pillars = problem
         .pillars
         .par_iter()
@@ -256,19 +235,6 @@ pub fn prune_attendees_and_pillars(problem: &ProblemDto) -> (Vec<Attendee>, Vec<
         })
         .cloned()
         .collect::<Vec<_>>();
-
-    if pruned_pillars.len() < problem.attendees.len() {
-        debug!(
-            "prune: {} => {} pillars (-{}%)",
-            problem.pillars.len(),
-            pruned_pillars.len(),
-            (((problem.pillars.len() as f32 - pruned_pillars.len() as f32)
-                / (problem.pillars.len() as f32))
-                * 100.0) as i32
-        );
-    } else {
-        debug!("prune: pruned 0 pillars ({} total)", problem.pillars.len());
-    }
 
     (pruned_attendees, pruned_pillars)
 }
