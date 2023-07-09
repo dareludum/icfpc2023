@@ -3,7 +3,7 @@ use log::debug;
 use crate::{
     common::Grid,
     dto::{Instrument, SolutionDto},
-    scorer::ImpactMap,
+    scoring::scorer::ImpactMap,
 };
 
 use super::{Problem, Solver};

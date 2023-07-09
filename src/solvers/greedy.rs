@@ -7,7 +7,7 @@ use crate::{
     common::Grid,
     dto::{Instrument, Point2D, SolutionDto},
     geometry::distance2,
-    scorer::{ImpactMap, PillarBlockageMap},
+    scoring::scorer::{ImpactMap, PillarBlockageMap},
 };
 
 use super::{Problem, Solver};

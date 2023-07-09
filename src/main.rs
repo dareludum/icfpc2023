@@ -20,8 +20,7 @@ mod dto;
 mod geometry;
 mod gui;
 mod helpers;
-mod new_scorer;
-mod scorer;
+mod scoring;
 mod solvers;
 
 fn get_problem_paths(args: &Args, force_batch: bool) -> Result<Vec<PathBuf>, std::io::Error> {
@@ -114,11 +113,11 @@ fn main() -> std::io::Result<()> {
             let problem = Problem::load(Path::new(problem))?;
             let solution = SolutionDto::load(Path::new(solution))?;
             let before_score = Instant::now();
-            let score = scorer::score(&problem.data, &solution.placements);
+            let score = scoring::scorer::score(&problem.data, &solution.placements);
             let score_time = before_score.elapsed();
 
             let before_fast_score = Instant::now();
-            let fast_score = new_scorer::new_score(&problem.data, &solution.placements);
+            let fast_score = scoring::new_scorer::new_score(&problem.data, &solution.placements);
             let fast_score_time = before_fast_score.elapsed();
             println!(
                 "     score: {:>10} {:>10}us",

@@ -7,7 +7,7 @@ use crate::{
     common::{calculate_invalid_positions, Grid},
     dto::{Attendee, Instrument, SolutionDto},
     geometry::{distance2, Coords2D},
-    scorer::ImpactMap,
+    scoring::scorer::ImpactMap,
     solvers::{create_solver, Problem, Solution, Solver},
 };
 
@@ -179,8 +179,10 @@ impl State {
     }
 
     pub fn update_score(&mut self) {
-        self.solution.score =
-            crate::new_scorer::new_score(&self.problem.data, &self.solution.data.placements);
+        self.solution.score = crate::scoring::new_scorer::new_score(
+            &self.problem.data,
+            &self.solution.data.placements,
+        );
     }
 
     pub fn save_solution(&self) {

@@ -102,7 +102,7 @@ impl Solver for Expand {
         }
 
         self.pq = pq;
-        self.curr_score = crate::scorer::score(&self.problem.data, &self.placements);
+        self.curr_score = crate::scoring::scorer::score(&self.problem.data, &self.placements);
 
         debug!("expand({}): initialized", self.problem.id);
     }
@@ -132,7 +132,7 @@ impl Solver for Expand {
         //         self.placements.swap(idx0.0, idx1.0);
         //     }
 
-        //     let new_score = crate::scorer::score(&self.problem, &self.placements);
+        //     let new_score = crate::scoring::scorer::score(&self.problem, &self.placements);
         //     let diff = new_score.0 - self.curr_score.0;
 
         //     let individual_contribution = diff / ((group_size / 5) as i64 + 1);
@@ -190,7 +190,7 @@ impl Solver for Expand {
                     new_placements[*idx] = pos.p;
                 }
 
-                let new_score = crate::scorer::score(&self.problem.data, &new_placements);
+                let new_score = crate::scoring::scorer::score(&self.problem.data, &new_placements);
                 let diff = new_score.0 - self.curr_score.0;
 
                 if diff > 0 {
@@ -228,7 +228,7 @@ impl Solver for Expand {
                     new_placements.swap(*idx0, *idx1);
                 }
 
-                let new_score = crate::scorer::score(&self.problem.data, &new_placements);
+                let new_score = crate::scoring::scorer::score(&self.problem.data, &new_placements);
                 let diff = new_score.0 - self.curr_score.0;
 
                 if diff > 0 {

@@ -16,11 +16,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::common::{prune_attendees_and_pillars, Grid};
 use crate::dto::{Attendee, Instrument, PillarDto};
-use crate::scorer::ImpactMap;
+use crate::scoring::scorer::ImpactMap;
 use crate::{
     dto::{ProblemDto, SolutionDto, SolutionMetaDto},
     helpers::os_str_to_str,
-    scorer::score,
+    scoring::scorer::score,
 };
 
 use self::annealer::Annealer;

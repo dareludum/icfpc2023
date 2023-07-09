@@ -6,7 +6,7 @@ use rand::Rng;
 use crate::{
     common::{calculate_invalid_positions, generate_random_placement, get_random_coords},
     dto::{Point2D, ProblemDto, SolutionDto},
-    new_scorer::new_score,
+    scoring::new_scorer::new_score,
 };
 
 use super::Solver;

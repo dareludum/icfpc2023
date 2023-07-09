@@ -6,8 +6,7 @@ use crate::{
     common::calculate_invalid_positions,
     dto::{Point2D, SolutionDto},
     geometry::Coords2D,
-    new_scorer::new_score,
-    scorer::score,
+    scoring::{new_scorer::new_score, scorer::score},
 };
 
 use super::{Problem, Score, Solver};
