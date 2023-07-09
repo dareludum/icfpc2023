@@ -30,9 +30,15 @@ impl Coords2D for Position {
 #[derive(Default, Clone)]
 pub struct Grid {
     pub positions: Vec<Position>,
+    pub width: usize,
+    pub height: usize,
 }
 
 impl Grid {
+    pub fn get_position(&self, x: usize, y: usize) -> &Position {
+        return &self.positions[y * self.height + x];
+    }
+
     pub fn new(problem: &Problem) -> Self {
         let data = &problem.data;
         let x = data.stage_bottom_left.0 + 10.0;
@@ -74,8 +80,11 @@ impl Grid {
 
         let mut positions = vec![];
         let mut curr_y = y;
+        let mut width = 0usize;
+        let mut height = 0usize;
         while curr_y <= until_y {
             let mut curr_x = x;
+            let mut cur_width = 0;
             while curr_x <= until_x {
                 positions.push(Position {
                     p: Point2D {
@@ -85,8 +94,15 @@ impl Grid {
                     taken: false,
                 });
                 curr_x += delta;
+                cur_width += 1;
+            }
+            if width != 0 {
+                assert!(cur_width == width);
+            } else {
+                width = cur_width;
             }
             curr_y += delta;
+            height += 1;
         }
 
         debug!(
@@ -95,7 +111,11 @@ impl Grid {
             positions.len()
         );
 
-        Grid { positions }
+        Grid {
+            positions,
+            width,
+            height,
+        }
     }
 
     pub fn recalculate_taken(&mut self, placements: &[Point2D]) {
