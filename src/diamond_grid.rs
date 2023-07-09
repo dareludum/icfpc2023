@@ -2,8 +2,8 @@ use std::ops::{Index, IndexMut};
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct GridSize {
-    half_width: usize,
-    half_height: usize,
+    pub half_width: usize,
+    pub half_height: usize,
 }
 
 impl GridSize {
@@ -12,7 +12,7 @@ impl GridSize {
     }
 
     pub fn height(&self) -> usize {
-        self.half_width * 2
+        self.half_height * 2
     }
 
     pub fn all_grid_coordinates(&self) -> Vec<GridCoord> {
