@@ -23,7 +23,7 @@ pub struct Annealer {
     placements: Vec<GridCoord>,
     score: Score,
 
-    pub start_temperature: f32,
+    pub initial_temperature: f32,
     pub temperature: f32,
     pub cooling_rate: f32,
 }
@@ -123,7 +123,15 @@ impl Solver for Annealer {
             self.grid[placement] = Some(i);
         }
 
+        // compute the score
         self.score = self.compute_score();
+
+        // figure out the initial temperature
+        let grid_width = self.grid_size.width();
+        let grid_height = self.grid_size.height();
+        self.initial_temperature = ((grid_width.pow(2) + grid_width.pow(2)) as f32).sqrt() / 3.;
+        self.temperature = self.initial_temperature;
+        self.cooling_rate = 0.9;
         debug!("annealer({}): initialized", self.problem.id);
     }
 
