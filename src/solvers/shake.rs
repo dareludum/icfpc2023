@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use log::debug;
 
 use crate::{
@@ -12,6 +14,9 @@ use super::{Problem, Score, Solver};
 
 #[derive(Default, Clone)]
 pub struct Shake {
+    // Parameters
+    cycles_cap: Option<u32>,
+    // Data
     problem: Problem,
     solution: SolutionDto,
     orig_score: Score,
@@ -20,11 +25,25 @@ pub struct Shake {
     idx_change: usize,
     delta: f32,
     any_improvement_this_cycle: bool,
+    cycles_count: u32,
 }
 
 impl Solver for Shake {
     fn name(&self) -> String {
-        "shake".to_owned()
+        let mut name = "shake".to_owned();
+        if let Some(cap) = self.cycles_cap {
+            name += &format!("_cap_{}", cap);
+        }
+        name
+    }
+
+    fn set_parameters(&mut self, parameters: HashMap<String, i64>) {
+        for (k, v) in parameters.into_iter() {
+            match k.as_str() {
+                "cap" => self.cycles_cap = Some(v as u32),
+                _ => panic!("Unknown parameter {}", k),
+            }
+        }
     }
 
     fn initialize(&mut self, problem: &Problem, solution: SolutionDto) {
@@ -41,6 +60,7 @@ impl Solver for Shake {
         self.idx_change = 0;
         self.delta = 1.0;
         self.any_improvement_this_cycle = false;
+        self.cycles_count = 0;
     }
 
     fn solve_step(&mut self) -> (SolutionDto, bool) {
@@ -98,6 +118,15 @@ impl Solver for Shake {
                 }
             }
 
+            self.cycles_count += 1;
+
+            if let Some(cap) = self.cycles_cap {
+                if self.cycles_count >= cap {
+                    debug!("shake({}): cap reached ({} cycles)", self.problem.id, cap);
+                    self.idx = self.solution.placements.len();
+                    return (self.solution.clone(), true);
+                }
+            }
             if self.any_improvement_this_cycle {
                 debug!(
                     "shake({}): new cycle ({} => {})",

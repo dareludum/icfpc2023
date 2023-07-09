@@ -4,6 +4,7 @@ mod genetic;
 mod greedy;
 mod shake;
 
+use std::collections::HashMap;
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
 use std::path::Path;
@@ -184,6 +185,13 @@ impl Solution {
 pub trait Solver: DynClone + Sync + Send {
     fn name(&self) -> String;
 
+    fn set_parameters(&mut self, parameters: HashMap<String, i64>) {
+        assert!(
+            parameters.is_empty(),
+            "Solver {} doesn't accept parameters",
+            self.name()
+        );
+    }
     fn initialize(&mut self, problem: &Problem, solution: SolutionDto);
     fn solve_step(&mut self) -> (SolutionDto, bool);
 
@@ -225,11 +233,40 @@ pub fn create_solver(solver_name: &str) -> Box<dyn Solver> {
 }
 
 fn create_individual_solver(solver_name: &str) -> Box<dyn Solver> {
-    match solver_name {
+    let (solver_name, parameters) = if solver_name.contains('{') {
+        assert!(
+            solver_name.ends_with('}'),
+            "Invalid solver name {}",
+            solver_name
+        );
+        let (solver_name, rest) = solver_name.split_at(solver_name.find('{').unwrap());
+        let rest = &rest[1..rest.len() - 1];
+        let parameters = rest
+            .split(',')
+            .map(|s| {
+                let (name, value) = s.split_at(
+                    s.find('=')
+                        .expect("Invalid parameter format, expected `name=value`"),
+                );
+                (
+                    name.to_owned(),
+                    value[1..]
+                        .parse::<i64>()
+                        .expect("Failed to parse solver parameter as i64"),
+                )
+            })
+            .collect::<HashMap<_, _>>();
+        (solver_name, parameters)
+    } else {
+        (solver_name, HashMap::new())
+    };
+    let mut solver: Box<dyn Solver> = match solver_name {
         "expand" => Box::<Expand>::default(),
         "greedy" => Box::<Greedy>::default(),
         "genetic" => Box::<Genetic>::default(),
         "shake" => Box::<Shake>::default(),
         n => panic!("Unknown solver `{}`", n),
-    }
+    };
+    solver.set_parameters(parameters);
+    solver
 }
