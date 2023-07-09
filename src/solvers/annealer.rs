@@ -76,6 +76,7 @@ impl Annealer {
         for coord in &self.placements {
             res.push(self.grid_transform.apply(coord).into());
         }
+        assert!(!res.is_empty());
         SolutionDto {
             placements: res,
             volumes: Some(vec![10.0; self.placements.len()]),
@@ -167,12 +168,19 @@ impl Solver for Annealer {
         self.problem = problem.clone();
         let musician_count = problem.data.musicians.len();
 
-        let padding = 5.002;
+        let stage_width = problem.data.stage_width;
+        let stage_height = problem.data.stage_height;
+        assert!(stage_width >= 20.);
+        assert!(stage_height >= 20.);
+        let padding_x = if stage_width < 20.00002 { 5. } else { 5.002 };
+        let padding_y = if stage_height < 20.00002 { 5. } else { 5.002 };
         let (corner_x, corner_y) = problem.data.stage_bottom_left;
+        let width = stage_width - padding_x * 2.;
+        let height = stage_height - padding_y * 2.;
         (self.grid_size, self.grid_transform) = fit_circles_grid(
-            (corner_x + padding, corner_y + padding),
-            problem.data.stage_width - padding * 2.,
-            problem.data.stage_height - padding * 2.,
+            (corner_x + padding_x, corner_y + padding_y),
+            width.max(0.),
+            height.max(0.),
             5.002,
         );
         self.grid = DiamondGrid::new(self.grid_size, |_| None);

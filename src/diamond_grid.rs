@@ -4,17 +4,17 @@ use rand::Rng;
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct GridSize {
-    pub half_width: usize,
-    pub half_height: usize,
+    pub cells_x: usize,
+    pub cellx_y: usize,
 }
 
 impl GridSize {
     pub fn width(&self) -> usize {
-        self.half_width * 2
+        self.cells_x * 2 + 1
     }
 
     pub fn height(&self) -> usize {
-        self.half_height * 2
+        self.cellx_y * 2 + 1
     }
 
     pub fn all_grid_coordinates(&self) -> Vec<GridCoord> {
@@ -44,8 +44,17 @@ impl GridSize {
     pub fn displace(&self, point: &GridCoord, displacement: (isize, isize)) -> GridCoord {
         let width = self.width() as isize;
         let height = self.height() as isize;
-        let mut new_x = point.x + displacement.0;
-        let mut new_y = point.y + displacement.1;
+        let (mut off_x, mut off_y) = displacement;
+        if height == 1 {
+            off_y = 0;
+            off_x &= !1;
+        }
+        if width == 1 {
+            off_x = 0;
+            off_y &= !1;
+        }
+        let mut new_x = point.x + off_x;
+        let mut new_y = point.y + off_y;
 
         loop {
             let mut changed = false;
@@ -76,7 +85,15 @@ impl GridSize {
             }
         }
         let res = GridCoord::new(new_x, new_y);
-        assert!(self.check(&res));
+        assert!(
+            self.check(&res),
+            "{:?} {:?} w {} h {} class {:?}",
+            self,
+            &res,
+            self.width(),
+            self.height(),
+            classify(&res)
+        );
         res
     }
 }
@@ -97,8 +114,8 @@ impl GridTransform {
         assert!(self.size.check(coord));
         let x = self.x_min + self.cell_width * coord.x as f32;
         let y = self.y_min + self.cell_height * coord.y as f32;
-        assert!(x <= self.x_max + 0.0001, "{:?}", coord);
-        assert!(y <= self.y_max + 0.0001, "{:?}", coord);
+        assert!(x <= self.x_max + 0.0001, "{:?} {:?}", self, coord);
+        assert!(y <= self.y_max + 0.0001, "{:?} {:?}", self, coord);
         (x, y)
     }
 }
@@ -119,8 +136,8 @@ pub fn fit_circles_grid(
     let min_coarseness = radius * 2.828_427_f32;
     let min_x = bottom_left.0 + radius;
     let min_y = bottom_left.1 + radius;
-    let width = width - radius * 2f32;
-    let height = height - radius * 2f32;
+    let width = (width - radius * 2f32).max(0.);
+    let height = (height - radius * 2f32).max(0.);
     fit_grid(min_x, min_y, width, height, min_coarseness)
 }
 
@@ -131,14 +148,22 @@ pub fn fit_grid(
     height: f32,
     min_coarseness: f32,
 ) -> (GridSize, GridTransform) {
-    let grid_half_width = width.div_euclid(min_coarseness);
-    let grid_half_height = height.div_euclid(min_coarseness);
+    let grid_cells_x = width.div_euclid(min_coarseness);
+    let grid_cellx_y = height.div_euclid(min_coarseness);
     // a cell is 1 unit on the grid
-    let x_cell_size = width / (grid_half_width * 2.);
-    let y_cell_size = height / (grid_half_height * 2.);
+    let x_cell_size = if grid_cells_x == 0. {
+        0.
+    } else {
+        width / (grid_cells_x * 2.)
+    };
+    let y_cell_size = if grid_cellx_y == 0. {
+        0.
+    } else {
+        height / (grid_cellx_y * 2.)
+    };
     let grid_size = GridSize {
-        half_width: grid_half_width as usize,
-        half_height: grid_half_height as usize,
+        cells_x: grid_cells_x as usize,
+        cellx_y: grid_cellx_y as usize,
     };
     // the transform
     let grid_transform = GridTransform {
@@ -192,6 +217,7 @@ impl GridCoord {
     }
 }
 
+#[derive(Debug)]
 enum CoordSpace {
     Even,
     Odd,
@@ -249,8 +275,8 @@ impl<T: Copy> Index<&GridCoord> for DiamondGrid<T> {
         let x = index.x as usize >> 1;
         let y = index.y as usize >> 1;
         match classify(index).unwrap() {
-            CoordSpace::Even => &self.even_nodes[y * self.size.half_width + x],
-            CoordSpace::Odd => &self.odd_nodes[y * (self.size.half_width - 1) + x],
+            CoordSpace::Even => &self.even_nodes[y * self.size.cells_x + x],
+            CoordSpace::Odd => &self.odd_nodes[y * (self.size.cells_x - 1) + x],
         }
     }
 }
@@ -260,8 +286,8 @@ impl<T: Copy> IndexMut<&GridCoord> for DiamondGrid<T> {
         let x = index.x as usize >> 1;
         let y = index.y as usize >> 1;
         match classify(index).unwrap() {
-            CoordSpace::Even => &mut self.even_nodes[y * self.size.half_width + x],
-            CoordSpace::Odd => &mut self.odd_nodes[y * (self.size.half_width - 1) + x],
+            CoordSpace::Even => &mut self.even_nodes[y * self.size.cells_x + x],
+            CoordSpace::Odd => &mut self.odd_nodes[y * (self.size.cells_x - 1) + x],
         }
     }
 }
