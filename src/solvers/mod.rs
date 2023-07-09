@@ -3,6 +3,7 @@ mod chain;
 mod expand;
 mod genetic;
 mod greedy;
+mod load_best;
 mod shake;
 
 use std::collections::{HashMap, HashSet};
@@ -28,6 +29,7 @@ use self::chain::Chain;
 use self::expand::Expand;
 use self::genetic::Genetic;
 use self::greedy::Greedy;
+use self::load_best::LoadBest;
 use self::shake::Shake;
 
 #[derive(Default, Clone)]
@@ -285,11 +287,12 @@ fn create_individual_solver(solver_name: &str) -> Box<dyn Solver> {
         (solver_name, HashMap::new())
     };
     let mut solver: Box<dyn Solver> = match solver_name {
-        "expand" => Box::<Expand>::default(),
-        "greedy" => Box::<Greedy>::default(),
-        "genetic" => Box::<Genetic>::default(),
-        "shake" => Box::<Shake>::default(),
         "annealer" => Box::<Annealer>::default(),
+        "expand" => Box::<Expand>::default(),
+        "genetic" => Box::<Genetic>::default(),
+        "greedy" => Box::<Greedy>::default(),
+        "load_best" => Box::<LoadBest>::default(),
+        "shake" => Box::<Shake>::default(),
         n => panic!("Unknown solver `{}`", n),
     };
     solver.set_parameters(parameters);
