@@ -6,15 +6,14 @@ use rand::Rng;
 use crate::{
     common::{calculate_invalid_positions, generate_random_placement, get_random_coords},
     dto::{Point2D, ProblemDto, SolutionDto},
-    scoring::new_scorer::new_score,
 };
 
-use super::Solver;
+use super::{Problem, Solver};
 
 #[derive(Clone, Debug)]
 pub struct Genetic {
     pub population_size: u32,
-    problem: ProblemDto,
+    problem: Problem,
     population: Vec<Individual>,
     max_generations: u32,
     generation: u32,
@@ -34,7 +33,7 @@ impl Default for Genetic {
     fn default() -> Self {
         Self {
             population_size: 20,
-            problem: ProblemDto::default(),
+            problem: Problem::default(),
             population: Vec::new(),
             max_generations: 10,
             generation: 0,
@@ -51,11 +50,11 @@ impl Solver for Genetic {
     }
 
     fn initialize(&mut self, problem: &super::Problem, solution: SolutionDto) {
-        self.problem = problem.data.clone();
+        self.problem = problem.clone();
         self.population = self.create_initial_population(self.population_size, &self.problem);
         if !solution.placements.is_empty() {
             self.population[0].placements = solution.placements;
-            self.population[0].recalculate_fitness(&problem.data);
+            self.population[0].recalculate_fitness(&problem);
         }
 
         self.population.sort_by_key(|x| cmp::Reverse(x.fitness));
@@ -88,21 +87,21 @@ impl Genetic {
     fn create_initial_population(
         &self,
         population_size: u32,
-        problem: &ProblemDto,
+        problem: &Problem,
     ) -> Vec<Individual> {
         let mut population = Vec::new();
 
         for _ in 0..population_size {
             let mut placements = Vec::new();
-            placements.push(get_random_coords(problem));
+            placements.push(get_random_coords(&problem.data));
 
-            for _ in 0..problem.musicians.len() {
-                placements.push(generate_random_placement(problem, &placements));
+            for _ in 0..problem.data.musicians.len() {
+                placements.push(generate_random_placement(&problem.data, &placements));
             }
 
             // TODO volumes
             let individual = Individual {
-                fitness: new_score(problem, &placements, None).0,
+                fitness: problem.score(&placements, None).0,
                 placements,
                 volumes: None,
             };
@@ -167,11 +166,11 @@ impl Genetic {
             let (mut child1, mut child2) = self.swap_crossover(parent1, parent2);
 
             if rng.gen_range(0.0..1.0) < self.mutation_rate {
-                child1.mutate(&self.problem);
+                child1.mutate(&self.problem.data);
             }
 
             if rng.gen_range(0.0..1.0) < self.mutation_rate {
-                child2.mutate(&self.problem);
+                child2.mutate(&self.problem.data);
             }
 
             child1.recalculate_fitness(&self.problem);
@@ -212,8 +211,8 @@ impl Genetic {
             child2.placements[musician] = parent1.placements[musician];
         }
 
-        random_repair_invalid_positions(&self.problem, &mut child1.placements);
-        random_repair_invalid_positions(&self.problem, &mut child2.placements);
+        random_repair_invalid_positions(&self.problem.data, &mut child1.placements);
+        random_repair_invalid_positions(&self.problem.data, &mut child2.placements);
 
         (child1, child2)
     }
@@ -233,8 +232,8 @@ fn random_repair_invalid_positions(problem: &ProblemDto, placements: &mut [Point
 }
 
 impl Individual {
-    fn recalculate_fitness(&mut self, problem: &ProblemDto) {
-        self.fitness = new_score(problem, &self.placements, self.volumes.as_ref()).0;
+    fn recalculate_fitness(&mut self, problem: &Problem) {
+        self.fitness = problem.score(&self.placements, self.volumes.as_ref()).0;
     }
 
     fn mutate(&mut self, problem: &ProblemDto) {

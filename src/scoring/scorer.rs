@@ -8,6 +8,22 @@ use crate::{
     solvers::Score,
 };
 
+use super::Scorer;
+
+#[derive(Default, Clone)]
+pub struct LegacyScorer;
+
+impl Scorer for LegacyScorer {
+    fn score(
+        &self,
+        problem: &ProblemDto,
+        placements: &[Point2D],
+        volumes: Option<&Vec<f32>>,
+    ) -> Score {
+        self::score(problem, placements, volumes)
+    }
+}
+
 pub fn calculate_impact(attendee: &Attendee, instrument: &Instrument, placement: &Point2D) -> i64 {
     let distance_square = distance2(placement, attendee);
 
@@ -100,7 +116,7 @@ fn calculate_closeness_factors(musicians: &[Instrument], placements: &[Point2D])
     closeness_factors
 }
 
-pub fn score(problem: &ProblemDto, placements: &[Point2D], volumes: Option<&Vec<f32>>) -> Score {
+fn score(problem: &ProblemDto, placements: &[Point2D], volumes: Option<&Vec<f32>>) -> Score {
     // if there are pillars then it is a task from spec v2
     let closeness_factors = if problem.pillars.is_empty() {
         vec![]

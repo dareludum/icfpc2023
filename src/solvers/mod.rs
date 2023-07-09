@@ -13,17 +13,18 @@ use std::fs::File;
 use std::io::{BufReader, BufWriter};
 use std::path::Path;
 
+use derivative::Derivative;
 use dyn_clone::DynClone;
 use log::debug;
 use serde::{Deserialize, Serialize};
 
 use crate::common::{prune_attendees_and_pillars, Grid};
-use crate::dto::{Attendee, Instrument, PillarDto};
+use crate::dto::{Attendee, Instrument, PillarDto, Point2D};
 use crate::scoring::impact_map::ImpactMap;
+use crate::scoring::Scorer;
 use crate::{
     dto::{ProblemDto, SolutionDto, SolutionMetaDto},
     helpers::os_str_to_str,
-    scoring::scorer::score,
 };
 
 use self::annealer::Annealer;
@@ -36,12 +37,15 @@ use self::mix::Mix;
 use self::shake::Shake;
 use self::vol10::Vol10;
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Derivative)]
+#[derivative(Debug)]
 pub struct Problem {
     pub id: String,
     pub data: ProblemDto,
     pub removed_attendees: Vec<Attendee>,
     pub removed_pillars: Vec<PillarDto>,
+    #[derivative(Debug = "ignore")]
+    scorer: Box<dyn Scorer>,
 }
 
 impl Problem {
@@ -55,6 +59,7 @@ impl Problem {
             data: serde_json::from_reader(reader)?,
             removed_attendees: vec![],
             removed_pillars: vec![],
+            ..Default::default()
         };
         if !problem.data.pillars.is_empty() {
             #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -145,6 +150,10 @@ impl Problem {
         }
         Ok(problem)
     }
+
+    pub fn score(&self, placements: &[Point2D], volumes: Option<&Vec<f32>>) -> Score {
+        self.scorer.score(&self.data, placements, volumes)
+    }
 }
 
 #[derive(Default, Clone, Copy)]
@@ -229,7 +238,7 @@ pub trait Solver: DynClone + Sync + Send {
                 continue;
             }
             return Solution {
-                score: score(
+                score: problem.scorer.score(
                     &problem.data,
                     &solution.placements,
                     solution.volumes.as_ref(),

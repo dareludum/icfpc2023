@@ -13,6 +13,8 @@ use helpers::*;
 use solvers::Problem;
 use solvers::SOLVERS;
 
+use crate::scoring::Scorer;
+
 mod cmd;
 mod collider;
 mod common;
@@ -114,7 +116,7 @@ fn main() -> std::io::Result<()> {
             let problem = Problem::load(Path::new(problem))?;
             let solution = SolutionDto::load(Path::new(solution))?;
             let before_score = Instant::now();
-            let score = scoring::scorer::score(
+            let score = scoring::scorer::LegacyScorer.score(
                 &problem.data,
                 &solution.placements,
                 solution.volumes.as_ref(),
@@ -122,7 +124,7 @@ fn main() -> std::io::Result<()> {
             let score_time = before_score.elapsed();
 
             let before_fast_score = Instant::now();
-            let fast_score = scoring::new_scorer::new_score(
+            let fast_score = scoring::new_scorer::NewScorer.score(
                 &problem.data,
                 &solution.placements,
                 solution.volumes.as_ref(),

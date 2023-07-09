@@ -102,7 +102,7 @@ impl Solver for Expand {
         }
 
         self.pq = pq;
-        self.curr_score = crate::scoring::scorer::score(&self.problem.data, &self.placements, None); // TODO volumes
+        self.curr_score = self.problem.score(&self.placements, None); // TODO volumes
 
         debug!("expand({}): initialized", self.problem.id);
     }
@@ -191,8 +191,7 @@ impl Solver for Expand {
                     new_placements[*idx] = pos.p;
                 }
 
-                let new_score =
-                    crate::scoring::scorer::score(&self.problem.data, &new_placements, volumes);
+                let new_score = self.problem.score(&new_placements, volumes);
                 let diff = new_score.0 - self.curr_score.0;
 
                 if diff > 0 {
@@ -230,8 +229,7 @@ impl Solver for Expand {
                     new_placements.swap(*idx0, *idx1);
                 }
 
-                let new_score =
-                    crate::scoring::scorer::score(&self.problem.data, &new_placements, volumes);
+                let new_score = self.problem.score(&new_placements, volumes);
                 let diff = new_score.0 - self.curr_score.0;
 
                 if diff > 0 {

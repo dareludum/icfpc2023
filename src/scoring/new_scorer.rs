@@ -4,6 +4,22 @@ use crate::collider::Collider;
 use crate::dto::Point2D;
 use crate::{dto::ProblemDto, solvers::Score};
 
+use super::Scorer;
+
+#[derive(Default, Clone)]
+pub struct NewScorer;
+
+impl Scorer for NewScorer {
+    fn score(
+        &self,
+        problem: &ProblemDto,
+        placements: &[Point2D],
+        volumes: Option<&Vec<f32>>,
+    ) -> Score {
+        self::new_score(problem, placements, volumes)
+    }
+}
+
 fn compute_closeness(problem: &ProblemDto, placements: &[Point2D]) -> Vec<f32> {
     // sort musicians by instrument
     let instrument_count: u32 = problem.musicians.iter().map(|ins| ins.0).max().unwrap() + 1;
@@ -43,12 +59,7 @@ fn compute_closeness(problem: &ProblemDto, placements: &[Point2D]) -> Vec<f32> {
     musicians_closeness
 }
 
-#[allow(dead_code)]
-pub fn new_score(
-    problem: &ProblemDto,
-    placements: &[Point2D],
-    volumes: Option<&Vec<f32>>,
-) -> Score {
+fn new_score(problem: &ProblemDto, placements: &[Point2D], volumes: Option<&Vec<f32>>) -> Score {
     let collider = Collider::new(problem, placements);
     let has_pillars = !problem.pillars.is_empty();
 

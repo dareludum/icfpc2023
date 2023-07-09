@@ -6,7 +6,6 @@ use crate::{
     common::calculate_invalid_positions,
     dto::{Point2D, SolutionDto},
     geometry::Coords2D,
-    scoring::{new_scorer::new_score, scorer::score},
 };
 
 use super::{Problem, Score, Solver};
@@ -53,11 +52,9 @@ impl Solver for Shake {
         );
         self.problem = problem.clone();
         self.solution = solution;
-        self.curr_score = new_score(
-            &self.problem.data,
-            &self.solution.placements,
-            self.solution.volumes.as_ref(),
-        );
+        self.curr_score = self
+            .problem
+            .score(&self.solution.placements, self.solution.volumes.as_ref());
         self.orig_score = self.curr_score;
         self.idx = 0;
         self.idx_change = 0;
@@ -104,11 +101,9 @@ impl Solver for Shake {
                         self.solution.placements[i_pos] = curr_pos;
                         continue;
                     }
-                    let new_score = score(
-                        &self.problem.data,
-                        &self.solution.placements,
-                        self.solution.volumes.as_ref(),
-                    );
+                    let new_score = self
+                        .problem
+                        .score(&self.solution.placements, self.solution.volumes.as_ref());
                     if new_score.0 <= self.curr_score.0 {
                         self.solution.placements[i_pos] = curr_pos;
                         continue;

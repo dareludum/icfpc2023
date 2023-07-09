@@ -1,6 +1,6 @@
 use log::debug;
 
-use crate::{dto::SolutionDto, scoring::new_scorer};
+use crate::dto::SolutionDto;
 
 use super::{Problem, Solver};
 
@@ -32,21 +32,17 @@ impl Solver for Mix {
         const VOLUME_STEP: f32 = 0.5;
 
         let mut volumes = vec![VOLUME_DEFAULT; self.solution.placements.len()];
-        let orig_score = new_scorer::new_score(
-            &self.problem.data,
-            &self.solution.placements,
-            Some(&volumes),
-        );
+        let orig_score = self
+            .problem
+            .score(&self.solution.placements, Some(&volumes));
         for idx in 0..self.solution.placements.len() {
             let mut volume = VOLUME_MIN;
             while volume < VOLUME_MAX {
                 let old_volume = volumes[idx];
                 volumes[idx] = volume;
-                let new_score = new_scorer::new_score(
-                    &self.problem.data,
-                    &self.solution.placements,
-                    Some(&volumes),
-                );
+                let new_score = self
+                    .problem
+                    .score(&self.solution.placements, Some(&volumes));
                 if new_score.0 < orig_score.0 {
                     volumes[idx] = old_volume;
                 }
@@ -56,11 +52,9 @@ impl Solver for Mix {
             // Copy-paste but whatever
             let old_volume = volumes[idx];
             volumes[idx] = volume;
-            let new_score = new_scorer::new_score(
-                &self.problem.data,
-                &self.solution.placements,
-                Some(&volumes),
-            );
+            let new_score = self
+                .problem
+                .score(&self.solution.placements, Some(&volumes));
             if new_score.0 < orig_score.0 {
                 volumes[idx] = old_volume;
             }

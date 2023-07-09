@@ -179,8 +179,7 @@ impl State {
     }
 
     pub fn update_score(&mut self) {
-        self.solution.score = crate::scoring::new_scorer::new_score(
-            &self.problem.data,
+        self.solution.score = self.problem.score(
             &self.solution.data.placements,
             self.solution.data.volumes.as_ref(),
         );
