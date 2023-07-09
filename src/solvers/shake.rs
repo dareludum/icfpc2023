@@ -8,7 +8,7 @@ use crate::{
     geometry::Coords2D,
 };
 
-use super::{Problem, Score, Solver};
+use super::{Parameter, Problem, Score, Solver};
 
 #[derive(Default, Clone)]
 pub struct Shake {
@@ -35,10 +35,10 @@ impl Solver for Shake {
         name
     }
 
-    fn set_parameters(&mut self, parameters: HashMap<String, i64>) {
+    fn set_parameters(&mut self, parameters: HashMap<String, Parameter>) {
         for (k, v) in parameters.into_iter() {
-            match k.as_str() {
-                "cap" => self.cycles_cap = Some(v as u32),
+            match (k.as_str(), v) {
+                ("cap", Parameter::Int(v)) => self.cycles_cap = Some(v as u32),
                 _ => panic!("Unknown parameter {}", k),
             }
         }

@@ -5,6 +5,7 @@ mod genetic;
 mod greedy;
 mod load_best;
 mod mix;
+mod set;
 mod shake;
 mod vol10;
 
@@ -34,6 +35,7 @@ use self::genetic::Genetic;
 use self::greedy::Greedy;
 use self::load_best::LoadBest;
 use self::mix::Mix;
+use self::set::Set;
 use self::shake::Shake;
 use self::vol10::Vol10;
 
@@ -217,10 +219,15 @@ impl Solution {
     }
 }
 
+pub enum Parameter {
+    Int(i64),
+    String(String),
+}
+
 pub trait Solver: DynClone + Sync + Send {
     fn name(&self) -> String;
 
-    fn set_parameters(&mut self, parameters: HashMap<String, i64>) {
+    fn set_parameters(&mut self, parameters: HashMap<String, Parameter>) {
         assert!(
             parameters.is_empty(),
             "Solver {} doesn't accept parameters",
@@ -290,9 +297,15 @@ fn create_individual_solver(solver_name: &str) -> Box<dyn Solver> {
                 );
                 (
                     name.to_owned(),
-                    value[1..]
-                        .parse::<i64>()
-                        .expect("Failed to parse solver parameter as i64"),
+                    if value.chars().nth(1).unwrap().is_ascii_digit() {
+                        Parameter::Int(
+                            value[1..]
+                                .parse::<i64>()
+                                .expect("Failed to parse solver parameter as i64"),
+                        )
+                    } else {
+                        Parameter::String(value[1..].to_owned())
+                    },
                 )
             })
             .collect::<HashMap<_, _>>();
@@ -307,6 +320,7 @@ fn create_individual_solver(solver_name: &str) -> Box<dyn Solver> {
         "greedy" => Box::<Greedy>::default(),
         "load_best" => Box::<LoadBest>::default(),
         "mix" => Box::<Mix>::default(),
+        "set" => Box::<Set>::default(),
         "shake" => Box::<Shake>::default(),
         "vol10" => Box::<Vol10>::default(),
         n => panic!("Unknown solver `{}`", n),
