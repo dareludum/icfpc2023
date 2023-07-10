@@ -3,6 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use log::info;
 use rayon::prelude::{ParallelBridge, ParallelIterator};
 
 use crate::{
@@ -21,6 +22,7 @@ fn solve_problem(
 
     for mut solver in solvers {
         // solve
+        info!("solving problem {} using {}", problem.id, solver.name());
         let solution = solver.solve(&problem);
 
         print!(
