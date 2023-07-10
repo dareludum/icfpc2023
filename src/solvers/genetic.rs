@@ -337,7 +337,11 @@ impl Individual {
         let mut rng = rand::thread_rng();
         let mutation_type = rng.gen_range(0..3);
         let max_mutation_size = (self.placements.len() / 20).max(1);
-        let mutation_size = rng.gen_range(1..=max_mutation_size);
+        let mutation_size = if max_mutation_size > 1 {
+            rng.gen_range(1..=max_mutation_size)
+        } else {
+            1
+        };
 
         for _ in 0..mutation_size {
             let musician = rng.gen_range(0..self.placements.len());
