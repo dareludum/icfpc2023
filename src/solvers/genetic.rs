@@ -7,7 +7,7 @@ use log::debug;
 use rand::Rng;
 
 use crate::{
-    common::{calculate_invalid_positions, generate_random_placement, get_random_coords},
+    common::{calculate_invalid_positions, generate_random_placement},
     dto::{Point2D, ProblemDto, SolutionDto},
 };
 
@@ -371,7 +371,7 @@ impl Individual {
                         placement_set.insert(*placement);
                     }
 
-                    let mut placement = self.placements[0].clone();
+                    let mut placement = self.placements[0];
                     let mut correct_placed = false;
                     let mut step = 10;
 
@@ -385,10 +385,10 @@ impl Individual {
                         let until_x = problem.stage_bottom_left.0 + problem.stage_width - 10.0;
                         let until_y = problem.stage_bottom_left.1 + problem.stage_height - 10.0;
 
-                        placement.x = (self.placements[musician].x as f32 + step_x as f32)
+                        placement.x = (self.placements[musician].x + step_x as f32)
                             .max(from_x)
                             .min(until_x);
-                        placement.y = (self.placements[musician].y as f32 + step_y as f32)
+                        placement.y = (self.placements[musician].y + step_y as f32)
                             .max(from_y)
                             .min(until_y);
 
