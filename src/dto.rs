@@ -87,7 +87,7 @@ impl SolutionDto {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Default)]
 pub struct Point2D {
     pub x: f32,
     pub y: f32,

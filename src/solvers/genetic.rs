@@ -37,7 +37,7 @@ struct Individual {
 impl Default for Genetic {
     fn default() -> Self {
         Self {
-            population_size: 30,
+            population_size: 50,
             problem: Problem::default(),
             population: Vec::new(),
             max_generations: 50,
@@ -156,9 +156,9 @@ impl Genetic {
         let total_fitness: i64 = population.iter().map(|individual| individual.fitness).sum();
 
         if total_fitness <= 0 {
-            // In case due to floating point underflow or similar we didn't select an individual, return the last one
-            debug!("Roulette wheel selection failed, returning last individual");
-            return &population[population.len() - 1];
+            // In case due to floating point underflow or similar we didn't select an individual, return the random one
+            debug!("Roulette wheel selection failed, returning random individual");
+            return &population[rng.gen_range(0..population.len())];
         }
 
         // Select a random point on the wheel
@@ -172,9 +172,9 @@ impl Genetic {
             }
         }
 
-        // In case due to floating point underflow or similar we didn't select an individual, return the last one
-        debug!("Roulette wheel selection failed, returning last individual");
-        &population[population.len() - 1]
+        // In case due to floating point underflow or similar we didn't select an individual, return the random one
+        debug!("Roulette wheel selection failed, returning random individual");
+        &population[rng.gen_range(0..population.len())]
     }
 
     fn selection(&mut self) {
@@ -334,33 +334,80 @@ impl Individual {
 
     fn mutate(&mut self, problem: &ProblemDto) {
         let mut rng = rand::thread_rng();
-        let mutation_type = rng.gen_range(0..2);
-        let musician = rng.gen_range(0..self.placements.len());
+        let mutation_type = rng.gen_range(0..3);
+        let mutation_size = rng.gen_range(1..self.placements.len() / 20).max(1);
 
-        match mutation_type {
-            0 => {
-                // Generate random placement
-                let mut placement_set: HashSet<Point2D> = HashSet::new();
+        for _ in 0..mutation_size {
+            let musician = rng.gen_range(0..self.placements.len());
 
-                for placement in &self.placements {
-                    placement_set.insert(*placement);
+            match mutation_type {
+                0 => {
+                    let mut placement_set: HashSet<Point2D> = HashSet::new();
+
+                    for placement in &self.placements {
+                        placement_set.insert(*placement);
+                    }
+
+                    let mut placement = generate_random_placement(problem, &self.placements);
+
+                    while placement_set.contains(&placement) {
+                        placement = generate_random_placement(problem, &self.placements);
+                    }
+
+                    self.placements[musician] = placement;
                 }
+                1 => {
+                    // Swap 2 random placements
+                    let musician2 = rng.gen_range(0..self.placements.len());
 
-                let mut placement = generate_random_placement(problem, &self.placements);
-
-                while placement_set.contains(&placement) {
-                    placement = generate_random_placement(problem, &self.placements);
+                    self.placements.swap(musician, musician2);
                 }
+                2 => {
+                    let mut placement_set: HashSet<Point2D> = HashSet::new();
 
-                self.placements[musician] = placement;
-            }
-            1 => {
-                // Swap 2 random placements
-                let musician2 = rng.gen_range(0..self.placements.len());
+                    for placement in &self.placements {
+                        placement_set.insert(*placement);
+                    }
 
-                self.placements.swap(musician, musician2);
+                    let mut placement = self.placements[0].clone();
+                    let mut correct_placed = false;
+                    let mut step = 10;
+
+                    while placement_set.contains(&placement) || !correct_placed {
+                        // move a musician in a some direction
+                        let step_x: i32 = rng.gen_range(-step..=step);
+                        let step_y: i32 = rng.gen_range(-step..=step);
+
+                        let from_x = problem.stage_bottom_left.0 + 10.0;
+                        let from_y = problem.stage_bottom_left.1 + 10.0;
+                        let until_x = problem.stage_bottom_left.0 + problem.stage_width - 10.0;
+                        let until_y = problem.stage_bottom_left.1 + problem.stage_height - 10.0;
+
+                        placement.x = (self.placements[musician].x as f32 + step_x as f32)
+                            .max(from_x)
+                            .min(until_x);
+                        placement.y = (self.placements[musician].y as f32 + step_y as f32)
+                            .max(from_y)
+                            .min(until_y);
+
+                        step = step.checked_mul(2).unwrap_or(10);
+
+                        // check if the musician is not too close to another musician
+                        correct_placed = true;
+
+                        for i in 0..self.placements.len() {
+                            if placement.distance(&self.placements[i]) < 10.0 {
+                                correct_placed = false;
+                                break;
+                            }
+                        }
+                    }
+
+                    debug!("Moved musician {} to {:?}", musician, placement);
+                    self.placements[musician] = placement;
+                }
+                _ => {}
             }
-            _ => {}
         }
     }
 }
