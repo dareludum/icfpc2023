@@ -124,7 +124,6 @@ impl Genetic {
 
         for _ in 0..population_size {
             let mut placements = Vec::new();
-            placements.push(get_random_coords(&problem.data));
 
             for _ in 0..problem.data.musicians.len() {
                 placements.push(generate_random_placement(&problem.data, &placements));
