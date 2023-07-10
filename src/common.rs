@@ -199,11 +199,11 @@ pub fn get_random_coords(problem: &ProblemDto) -> Point2D {
     Point2D {
         x: rng.gen_range(
             (problem.stage_bottom_left.0 + 10.0)
-                ..problem.stage_bottom_left.0 + problem.stage_width - 10.0,
+                ..=problem.stage_bottom_left.0 + problem.stage_width - 10.0,
         ),
         y: rng.gen_range(
             (problem.stage_bottom_left.1 + 10.0)
-                ..problem.stage_bottom_left.1 + problem.stage_height - 10.0,
+                ..=problem.stage_bottom_left.1 + problem.stage_height - 10.0,
         ),
     }
 }
