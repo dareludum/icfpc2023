@@ -161,7 +161,7 @@ impl Problem {
     }
 }
 
-#[derive(Default, Clone, Copy)]
+#[derive(Default, Clone, Copy, Debug)]
 pub struct Score(pub i64);
 
 #[derive(Default)]

@@ -1,4 +1,7 @@
-use std::{cmp, collections::HashSet};
+use std::{
+    cmp::{self},
+    collections::HashSet,
+};
 
 use log::debug;
 use rand::Rng;
@@ -20,6 +23,8 @@ pub struct Genetic {
     mutation_rate: f32,
     elitism_rate: f32,
     crossover_rate: f32,
+    best_fitness: i64,
+    generations_without_improvement: usize,
 }
 
 #[derive(Clone, Debug)]
@@ -37,9 +42,11 @@ impl Default for Genetic {
             population: Vec::new(),
             max_generations: 50,
             generation: 0,
-            mutation_rate: 0.05,
+            mutation_rate: 0.01,
             elitism_rate: 0.025,
             crossover_rate: 0.75,
+            best_fitness: 0,
+            generations_without_improvement: 0,
         }
     }
 }
@@ -62,6 +69,7 @@ impl Solver for Genetic {
         }
 
         self.population.sort_by_key(|x| cmp::Reverse(x.fitness));
+        self.best_fitness = self.population[0].fitness;
     }
 
     fn solve_step(&mut self) -> (SolutionDto, bool) {
@@ -76,7 +84,26 @@ impl Solver for Genetic {
         let is_finished = self.generation >= self.max_generations;
 
         let best_population = self.population.first().expect("population is empty");
-        debug!("Best fitness: {}", best_population.fitness);
+
+        debug!(
+            "Best fitness: {}, previous: {}",
+            best_population.fitness, self.best_fitness
+        );
+
+        if best_population.fitness <= self.best_fitness {
+            self.generations_without_improvement += 1;
+        } else {
+            self.generations_without_improvement = 0;
+            self.mutation_rate = (self.mutation_rate - 0.005).max(0.01);
+            debug!("decreased mutation rate to {}", self.mutation_rate);
+        }
+
+        if self.generations_without_improvement > 2 {
+            self.mutation_rate = (self.mutation_rate + 0.0025).min(0.05);
+            debug!("increased mutation rate to {}", self.mutation_rate);
+        }
+
+        self.best_fitness = best_population.fitness;
 
         let solution = SolutionDto {
             placements: best_population.placements.clone(),
@@ -307,23 +334,33 @@ impl Individual {
 
     fn mutate(&mut self, problem: &ProblemDto) {
         let mut rng = rand::thread_rng();
-        let mut placement_set: HashSet<Point2D> = HashSet::new();
-        let mutation_size = rng.gen_range(1..self.placements.len() / 20).max(1);
+        let mutation_type = rng.gen_range(0..2);
+        let musician = rng.gen_range(0..self.placements.len());
 
-        for _ in 0..mutation_size {
-            let musician = rng.gen_range(0..self.placements.len());
+        match mutation_type {
+            0 => {
+                // Generate random placement
+                let mut placement_set: HashSet<Point2D> = HashSet::new();
 
-            for placement in &self.placements {
-                placement_set.insert(*placement);
+                for placement in &self.placements {
+                    placement_set.insert(*placement);
+                }
+
+                let mut placement = generate_random_placement(problem, &self.placements);
+
+                while placement_set.contains(&placement) {
+                    placement = generate_random_placement(problem, &self.placements);
+                }
+
+                self.placements[musician] = placement;
             }
+            1 => {
+                // Swap 2 random placements
+                let musician2 = rng.gen_range(0..self.placements.len());
 
-            let mut placement = generate_random_placement(problem, &self.placements);
-
-            while placement_set.contains(&placement) {
-                placement = generate_random_placement(problem, &self.placements);
+                self.placements.swap(musician, musician2);
             }
-
-            self.placements[musician] = placement;
+            _ => {}
         }
     }
 }
