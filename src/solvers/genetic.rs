@@ -32,13 +32,13 @@ struct Individual {
 impl Default for Genetic {
     fn default() -> Self {
         Self {
-            population_size: 20,
+            population_size: 30,
             problem: Problem::default(),
             population: Vec::new(),
-            max_generations: 100,
+            max_generations: 50,
             generation: 0,
             mutation_rate: 0.05,
-            elitism_rate: 0.05,
+            elitism_rate: 0.025,
             crossover_rate: 0.75,
         }
     }
@@ -155,7 +155,7 @@ impl Genetic {
         let mut new_population = Vec::new();
 
         // Elitism: keep x% of the best individuals
-        let elitism_size = (self.population_size as f32 * self.elitism_rate) as usize;
+        let elitism_size = (self.population_size as f32 * self.elitism_rate).max(1.0) as usize;
         for i in 0..elitism_size {
             new_population.push(self.population[i].clone());
             debug!(
@@ -307,19 +307,23 @@ impl Individual {
 
     fn mutate(&mut self, problem: &ProblemDto) {
         let mut rng = rand::thread_rng();
-        let musician = rng.gen_range(0..self.placements.len());
         let mut placement_set: HashSet<Point2D> = HashSet::new();
+        let mutation_size = rng.gen_range(1..self.placements.len() / 20).max(1);
 
-        for placement in &self.placements {
-            placement_set.insert(*placement);
+        for _ in 0..mutation_size {
+            let musician = rng.gen_range(0..self.placements.len());
+
+            for placement in &self.placements {
+                placement_set.insert(*placement);
+            }
+
+            let mut placement = generate_random_placement(problem, &self.placements);
+
+            while placement_set.contains(&placement) {
+                placement = generate_random_placement(problem, &self.placements);
+            }
+
+            self.placements[musician] = placement;
         }
-
-        let mut placement = generate_random_placement(problem, &self.placements);
-
-        while placement_set.contains(&placement) {
-            placement = generate_random_placement(problem, &self.placements);
-        }
-
-        self.placements[musician] = placement;
     }
 }
