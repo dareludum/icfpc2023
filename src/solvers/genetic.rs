@@ -268,6 +268,8 @@ impl Genetic {
         // Swap segments between points
         child1.placements[point1..point2].copy_from_slice(&parent2.placements[point1..point2]);
         child2.placements[point1..point2].copy_from_slice(&parent1.placements[point1..point2]);
+        assert!(parent1.placements.len() == parent2.placements.len());
+        assert!(child1.placements.len() == child2.placements.len());
 
         // Resolve conflicts
         self.resolve_conflicts(&mut child1, parent1, parent2, point1, point2);
@@ -335,7 +337,8 @@ impl Individual {
     fn mutate(&mut self, problem: &ProblemDto) {
         let mut rng = rand::thread_rng();
         let mutation_type = rng.gen_range(0..3);
-        let mutation_size = rng.gen_range(1..self.placements.len() / 20).max(1);
+        let max_mutation_size = (self.placements.len() / 20).max(1);
+        let mutation_size = rng.gen_range(1..=max_mutation_size);
 
         for _ in 0..mutation_size {
             let musician = rng.gen_range(0..self.placements.len());
