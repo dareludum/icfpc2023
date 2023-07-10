@@ -35,11 +35,11 @@ impl Default for Genetic {
             population_size: 20,
             problem: Problem::default(),
             population: Vec::new(),
-            max_generations: 10,
+            max_generations: 100,
             generation: 0,
-            mutation_rate: 0.5,
+            mutation_rate: 0.05,
             elitism_rate: 0.05,
-            crossover_rate: 0.33,
+            crossover_rate: 0.75,
         }
     }
 }
@@ -103,11 +103,12 @@ impl Genetic {
                 placements.push(generate_random_placement(&problem.data, &placements));
             }
 
-            // TODO volumes
+            let len = placements.len();
+
             let individual = Individual {
                 fitness: problem.score(&placements, None).0,
                 placements,
-                volumes: None,
+                volumes: Some(vec![10.0; len]), // TODO volumes
             };
 
             population.push(individual);
@@ -163,11 +164,11 @@ impl Genetic {
             );
         }
 
-        for _ in 0..self.population_size as usize - elitism_size {
+        for _ in 0..(self.population_size as f32 * self.crossover_rate) as usize - elitism_size {
             let parent1 = Self::roulette_wheel_selection(&self.population);
             let parent2 = Self::roulette_wheel_selection(&self.population);
 
-            let (mut child1, mut child2) = self.swap_crossover(parent1, parent2);
+            let (mut child1, mut child2) = self.pmx_crossover(parent1, parent2);
 
             if rng.gen_range(0.0..1.0) < self.mutation_rate {
                 child1.mutate(&self.problem.data);
@@ -193,7 +194,7 @@ impl Genetic {
         );
     }
 
-    fn swap_crossover(
+    fn _swap_crossover(
         &self,
         parent1: &Individual,
         parent2: &Individual,
@@ -219,6 +220,70 @@ impl Genetic {
         random_repair_invalid_positions(&self.problem.data, &mut child2.placements);
 
         (child1, child2)
+    }
+
+    fn pmx_crossover(
+        &self,
+        parent1: &Individual,
+        parent2: &Individual,
+    ) -> (Individual, Individual) {
+        let mut rng = rand::thread_rng();
+        let size = parent1.placements.len();
+
+        // Select two random crossover points
+        let point1 = rng.gen_range(0..size - 1);
+        let point2 = rng.gen_range(point1 + 1..size);
+
+        // Children start as exact copies of parents
+        let mut child1 = parent1.clone();
+        let mut child2 = parent2.clone();
+
+        // Swap segments between points
+        child1.placements[point1..point2].copy_from_slice(&parent2.placements[point1..point2]);
+        child2.placements[point1..point2].copy_from_slice(&parent1.placements[point1..point2]);
+
+        // Resolve conflicts
+        self.resolve_conflicts(&mut child1, parent1, parent2, point1, point2);
+        self.resolve_conflicts(&mut child2, parent2, parent1, point1, point2);
+
+        // Repair invalid positions
+        random_repair_invalid_positions(&self.problem.data, &mut child1.placements);
+        random_repair_invalid_positions(&self.problem.data, &mut child2.placements);
+
+        (child1, child2)
+    }
+
+    fn resolve_conflicts(
+        &self,
+        child: &mut Individual,
+        parent1: &Individual,
+        parent2: &Individual,
+        point1: usize,
+        point2: usize,
+    ) {
+        let size = parent1.placements.len();
+
+        for i in 0..size {
+            // Check if this position is within swapped segment
+            if i >= point1 && i < point2 {
+                continue;
+            }
+
+            while child.placements[point1..point2]
+                .iter()
+                .any(|x| *x == child.placements[i])
+            {
+                // Find the same value in the first parent
+                let index_in_parent1 = parent1
+                    .placements
+                    .iter()
+                    .position(|&x| x == child.placements[i])
+                    .unwrap();
+
+                // Replace the conflicting value with the value from the same position in the second parent
+                child.placements[i] = parent2.placements[index_in_parent1];
+            }
+        }
     }
 }
 
