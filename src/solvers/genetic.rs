@@ -37,10 +37,10 @@ struct Individual {
 impl Default for Genetic {
     fn default() -> Self {
         Self {
-            population_size: 50,
+            population_size: 100,
             problem: Problem::default(),
             population: Vec::new(),
-            max_generations: 50,
+            max_generations: 100,
             generation: 0,
             mutation_rate: 0.01,
             elitism_rate: 0.025,
