@@ -7,6 +7,7 @@ mod load_best;
 mod mix;
 mod set;
 mod shake;
+mod swarm;
 mod vol10;
 
 use std::collections::{HashMap, HashSet};
@@ -22,6 +23,7 @@ use serde::{Deserialize, Serialize};
 use crate::common::{prune_attendees_and_pillars, Grid};
 use crate::dto::{Attendee, Instrument, PillarDto, Point2D};
 use crate::scoring::impact_map::ImpactMap;
+use crate::scoring::new_scorer::NewScorer;
 use crate::scoring::Scorer;
 use crate::{
     dto::{ProblemDto, SolutionDto, SolutionMetaDto},
@@ -37,6 +39,7 @@ use self::load_best::LoadBest;
 use self::mix::Mix;
 use self::set::Set;
 use self::shake::Shake;
+use self::swarm::Swarm;
 use self::vol10::Vol10;
 
 #[derive(Default, Clone, Derivative)]
@@ -246,7 +249,8 @@ pub trait Solver: DynClone + Sync + Send {
                 continue;
             }
             return Solution {
-                score: problem.scorer.score(
+                // Always score with a good scorer here
+                score: NewScorer.score(
                     &problem.data,
                     &solution.placements,
                     solution.volumes.as_ref(),
@@ -323,6 +327,7 @@ fn create_individual_solver(solver_name: &str) -> Box<dyn Solver> {
         "set" => Box::<Set>::default(),
         "shake" => Box::<Shake>::default(),
         "vol10" => Box::<Vol10>::default(),
+        "swarm" => Box::<Swarm>::default(),
         n => panic!("Unknown solver `{}`", n),
     };
     solver.set_parameters(parameters);
